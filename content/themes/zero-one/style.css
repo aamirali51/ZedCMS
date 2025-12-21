@@ -1,0 +1,108 @@
+:root {
+    --zed-brand: #2563EB;
+    --zed-bg: #ffffff;
+    --zed-text: #111827;
+    --zed-text-muted: #6B7280;
+    --zed-border: #E5E7EB;
+    --zed-font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --zed-brand: #60A5FA;
+        --zed-bg: #111827;
+        --zed-text: #F9FAFB;
+        --zed-text-muted: #9CA3AF;
+        --zed-border: #374151;
+    }
+}
+
+body {
+    background-color: var(--zed-bg);
+    color: var(--zed-text);
+    font-family: var(--zed-font);
+    line-height: 1.6;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.zero-container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 2rem 1rem;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    line-height: 1.3;
+    color: var(--zed-text);
+}
+h1 { font-size: 2.25rem; font-weight: 800; letter-spacing: -0.025em; }
+h2 { font-size: 1.8rem; font-weight: 700; }
+p { margin-bottom: 1.25rem; }
+
+a { color: var(--zed-brand); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+blockquote {
+    border-left: 4px solid var(--zed-brand);
+    margin: 1.5rem 0;
+    padding-left: 1rem;
+    color: var(--zed-text-muted);
+    font-style: italic;
+    background: transparent;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    display: block;
+    margin: 1.5rem 0;
+}
+
+/* Utilities */
+.text-muted { color: var(--zed-text-muted); }
+.text-brand { color: var(--zed-brand); }
+.mb-4 { margin-bottom: 1rem; }
+.mt-8 { margin-top: 2rem; }
+
+/* Header/Footer */
+.zero-header {
+    border-bottom: 1px solid var(--zed-border);
+    padding: 1.5rem 0;
+    margin-bottom: 3rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.zero-brand-logo { font-weight: 900; font-size: 1.25rem; color: var(--zed-text); text-decoration: none; }
+
+.zero-footer {
+    margin-top: 4rem;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+    border-top: 1px solid var(--zed-border);
+    text-align: center;
+    color: var(--zed-text-muted);
+    font-size: 0.875rem;
+}
+
+/* Buttons */
+.zero-btn {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background-color: var(--zed-brand);
+    color: #fff;
+    border-radius: 0.375rem;
+    font-weight: 500;
+}
+.zero-btn:hover {
+    background-color: var(--zed-brand);
+    opacity: 0.9;
+    text-decoration: none;
+    color: #fff;
+}

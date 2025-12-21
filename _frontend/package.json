@@ -1,0 +1,44 @@
+{
+    "name": "zero-editor",
+    "version": "1.0.0",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "vite build",
+        "tiptap": "npx @tiptap/cli@latest"
+    },
+    "dependencies": {
+        "@blocknote/core": "^0.45.0",
+        "@blocknote/mantine": "^0.45.0",
+        "@blocknote/react": "^0.45.0",
+        "@floating-ui/dom": "^1.7.4",
+        "@floating-ui/react": "^0.27.16",
+        "@mantine/core": "^8.3.10",
+        "@mantine/hooks": "^8.3.10",
+        "@tiptap/core": "^3.14.0",
+        "@tiptap/extension-bubble-menu": "^3.14.0",
+        "@tiptap/extension-drag-handle": "^3.14.0",
+        "@tiptap/extension-floating-menu": "^3.14.0",
+        "@tiptap/extension-image": "^3.14.0",
+        "@tiptap/extension-link": "^3.14.0",
+        "@tiptap/extension-node-range": "^3.14.0",
+        "@tiptap/extension-placeholder": "^3.14.0",
+        "@tiptap/pm": "^3.14.0",
+        "@tiptap/react": "^3.14.0",
+        "@tiptap/starter-kit": "^3.14.0",
+        "@tiptap/suggestion": "^3.14.0",
+        "clsx": "^2.1.0",
+        "lucide-react": "^0.300.0",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
+        "tailwind-merge": "^2.2.0",
+        "tippy.js": "^6.3.7"
+    },
+    "devDependencies": {
+        "@vitejs/plugin-react": "^4.2.0",
+        "autoprefixer": "^10.4.17",
+        "postcss": "^8.4.35",
+        "tailwindcss": "^3.4.1",
+        "vite": "^5.0.0"
+    }
+}

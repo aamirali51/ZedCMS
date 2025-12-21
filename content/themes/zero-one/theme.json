@@ -1,0 +1,14 @@
+{
+    "name": "Zed One",
+    "version": "1.0.0",
+    "author": "AntigravityCMS",
+    "description": "A minimal, structural theme focused on reading.",
+    "settings": {
+        "brand_color": "#22c55e",
+        "background": "#ffffff",
+        "text_color": "#111827"
+    },
+    "menus": {
+        "primary_nav": "Main Navigation"
+    }
+}

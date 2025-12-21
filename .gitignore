@@ -1,0 +1,25 @@
+# --- Zed CMS Core Protection ---
+config.php
+install.php
+migrate_options.php
+
+# --- User Content ---
+# Ignore all uploads but keep the directory
+content/uploads/*
+!content/uploads/.gitkeep
+
+# Ignore thumbnails and WebP backups
+content/uploads/thumb_*
+content/uploads/*_original.*
+
+# --- Development & Frontend ---
+_frontend/node_modules/
+_frontend/dist/
+.DS_Store
+Thumbs.db
+vendor/
+.env
+
+# --- Logs & Temp ---
+*.log
+npm-debug.log*

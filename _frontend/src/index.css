@@ -1,0 +1,46 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.ProseMirror {
+  outline: none;
+  min-height: 150px;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  color: #adb5bd;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Drag Handle Styles */
+.drag-handle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  cursor: grab;
+  border-radius: 4px;
+  background: transparent;
+  color: #9ca3af;
+  transition: all 0.15s ease;
+}
+
+.drag-handle:hover {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+  background: #e5e7eb;
+  color: #374151;
+}
+
+.drag-handle svg {
+  width: 14px;
+  height: 14px;
+}
