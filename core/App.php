@@ -78,25 +78,34 @@ final class App
             Database::setConfig($dbConfig);
         }
 
-        // 3. Check remember me cookie for persistent login
+        // 3. Run pending migrations (safe upgrade system)
+        // Only executes migrations that haven't run yet, tracked in zed_options
+        try {
+            Migrations::run();
+        } catch (\Exception $e) {
+            // Silently fail - don't break the app if migrations fail
+            // Errors are logged in the migration system
+        }
+
+        // 4. Check remember me cookie for persistent login
         Auth::checkRememberCookie();
 
-        // 4. Fire the 'app_ready' event - system is ready
+        // 5. Fire the 'app_ready' event - system is ready
         Event::trigger('app_ready', $this);
 
-        // 5. Dispatch the route - let addons handle the request
+        // 6. Dispatch the route - let addons handle the request
         $uri = Router::getCurrentUri();
         $method = Router::getCurrentMethod();
         $response = Router::dispatch($uri, $method);
 
-        // 6. Output the response
+        // 7. Output the response
         if ($response !== null) {
             // Allow filtering the final output
             $response = Event::filter('app_output', $response);
             echo $response;
         }
 
-        // 7. Fire the 'app_shutdown' event - cleanup
+        // 8. Fire the 'app_shutdown' event - cleanup
         Event::trigger('app_shutdown', $this);
     }
 }

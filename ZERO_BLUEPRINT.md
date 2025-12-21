@@ -1,8 +1,8 @@
 # Zed CMS — Master Architecture Blueprint
 
-> **Version:** 1.7.0  
+> **Version:** 2.0.0  
 > **Generated:** 2025-12-21 (Updated)  
-> **Last Update:** 2025-12-21 — Dashboard Command Center, Visual Menu Builder, Dynamic Menu System  
+> **Last Update:** 2025-12-21 — Migration System, Version Tracking, Safe Upgrades  
 > **Purpose:** Source of Truth for all development activities.
 
 ---
@@ -80,12 +80,13 @@ F:\laragon\www\Zero\
 ├── install.php                  # ✅ Database installer
 ├── .htaccess                    # URL rewriting
 │
-├── core/                        # ✅ CORE ENGINE (5 classes)
-│   ├── App.php                  # Micro-kernel bootstrap
+├── core/                        # ✅ CORE ENGINE (6 classes)
+│   ├── App.php                  # Micro-kernel bootstrap + migration trigger
 │   ├── Router.php               # Event-driven routing (NO hardcoded routes)
 │   ├── Event.php                # WordPress-style hook system
 │   ├── Database.php             # PDO wrapper with JSON support
-│   └── Auth.php                 # Session-based authentication
+│   ├── Auth.php                 # Session-based authentication
+│   └── Migrations.php           # ✅ NEW: Version tracking & safe upgrades
 │
 ├── content/                     # USER CONTENT & EXTENSIONS
 │   ├── addons/                  # ✅ Plugin system
@@ -105,7 +106,8 @@ F:\laragon\www\Zero\
 │   │       │   ├── content-list-content.php
 │   │       │   ├── media-content.php    # ✅ v2: WebP, Drag & Drop, Toast UI
 │   │       │   ├── users-content.php
-│   │       │   ├── addons-content.php
+│   │       │   ├── addons-content.php   # ✅ v2: Card Grid, Toggle Switches
+│   │       │   ├── themes-content.php   # ✅ NEW: Gallery Grid, Color Preview
 │   │       │   └── settings-content.php
 │   │       └── assets/js/
 │   │           └── editor.bundle.js  # Compiled React bundle
@@ -286,6 +288,19 @@ Authors can only see/edit content where `author_id = current_user_id`. This is e
 | **Menu Delete API** | `/admin/api/delete-menu` | AJAX menu deletion |
 | **Dynamic Menu Helpers** | `frontend_addon.php` | `zed_menu()`, `zed_primary_menu()` |
 | **Menu by Name/ID** | `zed_menu('Main Menu')` | Flexible menu rendering |
+| **Addon Manager UI** | `/admin/addons` | Card grid with toggle switches |
+| **Addon Toggle API** | `/admin/api/toggle-addon` | Enable/disable addons (JSON array in zed_options) |
+| **Addon Upload API** | `/admin/api/upload-addon` | Upload .php addons to content/addons/ |
+| **Active Addons Loader** | `index.php` | Only loads enabled addons from active_addons option |
+| **Theme Manager UI** | `/admin/themes` | Gallery grid with screenshot/color preview |
+| **Theme Activate API** | `/admin/api/activate-theme` | Switch active frontend theme |
+| **Theme Switched Event** | `zed_theme_switched` | Triggered when theme changes (for cache clearing) |
+| **Content Delete Route** | `/admin/content/delete` | Full RBAC with ownership check, numeric ID validation |
+| **Editor Data Parsing** | `editor.php` | Properly parses JSON data for status/excerpt/featured image |
+| **BlockNote Crash Prevention** | `editor.php` | Ensures empty array initialization for new content |
+| **Migration System** | `Core\Migrations` | Incremental version upgrades, runs once per version |
+| **Version Tracking** | `zed_options` | Stores `zed_version` and `zed_migrations_log` |
+| **Safe Upgrades** | `App::run()` | Auto-runs migrations on every request (idempotent) |
 | **Theme Menu CSS** | `zero-one/index.php` | Horizontal nav with dropdowns |
 
 ### 🚧 Mocked/Static (Visual Only — Not Connected)
@@ -636,6 +651,86 @@ Content-Type: application/json
 { "success": true, "message": "Menu deleted" }
 ```
 
+#### POST `/admin/api/toggle-addon`
+**Purpose:** Enable or disable a non-system addon
+
+**Request Body:**
+```json
+{
+    "filename": "seo_pack.php"
+}
+```
+
+**Security:**
+- Admin-only endpoint (requires `manage_addons` capability)
+- System addons (`admin_addon.php`, `frontend_addon.php`) cannot be disabled
+
+**Response (Success):**
+```json
+{
+    "success": true,
+    "active": false,
+    "message": "SEO Pack Deactivated"
+}
+```
+
+**Response (Error):**
+```json
+{
+    "success": false,
+    "error": "System addons cannot be disabled"
+}
+```
+
+#### POST `/admin/api/upload-addon`
+**Purpose:** Upload a new addon file
+
+**Request:**
+- `Content-Type: multipart/form-data`
+- Field: `addon` (accepts `.php` files only)
+
+**Behavior:**
+- Sanitizes filename
+- Moves to `content/addons/`
+- Auto-activates the addon
+- Fails if file already exists
+
+**Response:**
+```json
+{
+    "success": true,
+    "filename": "seo_pack.php",
+    "message": "Addon uploaded and activated"
+}
+```
+
+#### POST `/admin/api/activate-theme`
+**Purpose:** Switch the active frontend theme
+
+**Request Body:**
+```json
+{
+    "theme": "zero-one"
+}
+```
+
+**Security:**
+- Admin-only endpoint (requires `manage_themes` capability)
+- `admin-default` theme cannot be activated as frontend theme
+
+**Behavior:**
+- Updates `active_theme` in zed_options
+- Triggers `zed_theme_switched` event
+
+**Response:**
+```json
+{
+    "success": true,
+    "theme": "zero-one",
+    "message": "Zed One activated"
+}
+```
+
 #### GET `/admin/content/delete?id=X`
 **Purpose:** Delete content by ID (redirect-based, not JSON API)
 
@@ -811,29 +906,37 @@ Themes can inject SEO metadata by calling:
 ### 5.1 Hardcoded Values to Replace Immediately
 
 | File | Line | Current Value | Required Fix |
-|------|------|---------------|--------------|
-| `dashboard.php` | 166 | `"All systems running"` | Query actual health metrics |
+|------|------|---------------|>--------------|
+| ~~`dashboard.php`~~ | ~~166~~ | ~~`"All systems running"`~~ | ✅ **FIXED** - Dynamic `zed_get_system_health()` |
 | `dashboard.php` | 230-254 | SVG chart paths | Implement Chart.js with real data |
-| `dashboard.php` | 267-302 | Static event list | Query actual audit log table |
-| `content-list.php` | 104-106 | Filter tabs | Add `?status=` query param filtering |
-| `content-list.php` | 203 | `min(10, count($posts))` | Implement real pagination |
-| `editor.php` | 152-166 | Categories checkboxes | Query `categories` table |
-| `editor.php` | 201 | `$post_id` | Bug: should be `$postId` (undefined variable warning) |
-| `editor.php` | 254 | `featuredImageUrl` | Bug: should be `featuredImage` (undefined variable) |
+| ~~`dashboard.php`~~ | ~~267-302~~ | ~~Static event list~~ | ✅ **FIXED** - "Jump Back In" shows real recent content |
+| ~~`content-list.php`~~ | ~~104-106~~ | ~~Filter tabs~~ | ✅ **FIXED** - Status tabs with `?status=` query filtering |
+| ~~`content-list.php`~~ | ~~203~~ | ~~`min(10, count($posts))`~~ | ✅ **FIXED** - Real LIMIT/OFFSET pagination |
+| ~~`editor.php`~~ | ~~152-166~~ | ~~Categories checkboxes~~ | ✅ **FIXED** - Fetches from `/admin/api/categories` |
+| ~~`editor.php`~~ | ~~201~~ | ~~`$post_id`~~ | ✅ **FIXED** - Uses `$postId ?? ''` |
+| ~~`editor.php`~~ | ~~254~~ | ~~`featuredImageUrl`~~ | ✅ **FIXED** - Extracted from PHP `$data` and injected |
 | `login.php` | 102 | `v2.4.0` | Pull from `config.php` app version |
 
 ### 5.2 Critical Bugs
 
 1. ~~**Undefined Variables in `editor.php`:**~~ ✅ **FIXED**
    - ~~Line 201: `$post_id` should be `$postId`~~ → Now uses null-safe `$postId ?? ''`
-   - ~~Line 254: `featuredImageUrl` referenced before definition~~ → Now extracted from PHP and injected into JS
+   - ~~Line 254: `featuredImageUrl` referenced before definition~~ → Now extracted from PHP `$data` and injected into JS
+   - **NEW FIX:** JSON data properly parsed to `$postStatus`, `$postExcerpt`, `$featuredImageUrl`
+   - **NEW FIX:** `window.zero_editor_content` initialized as empty array to prevent BlockNote crash
 
 2. ~~**Delete Route Missing:**~~ ✅ **FIXED**
-   - ~~`content-list.php:190` calls `/admin/content/delete?id=X`~~ → Route now implemented in `admin_addon.php`
+   - ~~`content-list.php:190` calls `/admin/content/delete?id=X`~~ → Route fully implemented
+   - Includes authentication, `delete_content` capability check, ownership enforcement
+   - Redirects with `?msg=deleted`, `?msg=not_found`, `?msg=invalid_id`, `?msg=permission_denied`
 
 3. ~~**Frontend Routes Missing:**~~ ✅ **FIXED**
    - ~~No public-facing route handler for content viewing~~ → Implemented in `frontend_addon.php`
    - ~~`/{slug}` returns 404~~ → Now renders published content
+
+4. ~~**Featured Image Not Loading on Edit:**~~ ✅ **FIXED**
+   - Featured image now pre-populates in UI when editing existing content
+   - `featuredImageUrl` passed from PHP to JS global scope
 
 ### 5.3 Build Dependency
 
@@ -881,11 +984,12 @@ Password: (set during install)
 | File | Responsibility |
 |------|----------------|
 | `index.php` | Boot only: config → autoload → addons → App::run() |
-| `Core\App` | Trigger lifecycle events, dispatch router |
+| `Core\App` | Trigger lifecycle events, run migrations, dispatch router |
 | `Core\Router` | Normalize URI, fire `route_request`, handle 404 |
 | `Core\Event` | Hook registration and execution |
 | `Core\Database` | PDO wrapper, JSON column helpers, transactions |
 | `Core\Auth` | Session management, login/logout, role checks, remember me |
+| `Core\Migrations` | Version tracking, incremental migrations, upgrade safety |
 | `admin_addon.php` | All `/admin/*` routes, API handlers, RBAC, WebP processing |
 | `frontend_addon.php` | Public routes, smart routing, BlockNote renderer, SEO head |
 | `admin-layout.php` | Master admin layout with dynamic RBAC sidebar |
@@ -893,6 +997,8 @@ Password: (set during install)
 | `content-list-content.php` | Content grid with pagination and filters |
 | `media-content.php` | Media Manager UI (drag-drop, search, clipboard) |
 | `users-content.php` | User Management UI (CRUD, Gravatar, password generator) |
+| `addons-content.php` | Addon Manager (card grid, toggle switches, upload) |
+| `themes-content.php` | Theme Manager (gallery grid, screenshot/color preview) |
 | `settings-content.php` | Unified Settings Panel (General, SEO, System) |
 | `editor.php` | React mount point, save JS logic |
 | `login.php` | Auth form with brute-force protection, remember me |

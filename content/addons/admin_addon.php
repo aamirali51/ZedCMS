@@ -541,7 +541,47 @@ function extract_text_from_blocks(array $blocks): string
     return trim(implode(' ', array_filter($textSegments, fn($s) => trim($s) !== '')));
 }
 
-
+/**
+ * Get content revisions for a specific content ID
+ * 
+ * Returns an array of revisions sorted by created_at DESC (newest first).
+ * Each revision contains decoded JSON data compatible with BlockNote renderer.
+ * 
+ * @param int $content_id The content ID to get revisions for
+ * @param int $limit Maximum number of revisions to return (default 10)
+ * @return array<int, array{id: int, content_id: int, data: array, author_id: int, created_at: string}>
+ */
+function zed_get_revisions(int $content_id, int $limit = 10): array
+{
+    try {
+        $db = Database::getInstance();
+        
+        $revisions = $db->query(
+            "SELECT id, content_id, data_json, author_id, created_at 
+             FROM zed_content_revisions 
+             WHERE content_id = :content_id 
+             ORDER BY created_at DESC 
+             LIMIT :limit",
+            ['content_id' => $content_id, 'limit' => $limit]
+        );
+        
+        // Decode JSON data for each revision
+        return array_map(function($rev) {
+            return [
+                'id' => (int)$rev['id'],
+                'content_id' => (int)$rev['content_id'],
+                'data' => json_decode($rev['data_json'], true) ?? [],
+                'author_id' => (int)$rev['author_id'],
+                'created_at' => $rev['created_at'],
+            ];
+        }, $revisions);
+        
+    } catch (Exception $e) {
+        // Table might not exist or query failed
+        error_log("zed_get_revisions error: " . $e->getMessage());
+        return [];
+    }
+}
 /**
  * Create a GD image resource from file
  */
@@ -1058,6 +1098,62 @@ Event::on('route_request', function (array $request): void {
         require $themePath . '/admin-layout.php';
         $content = ob_get_clean();
         Router::setHandled($content);
+        return;
+    }
+
+    // /admin/content/delete - Delete content by ID
+    if ($uri === '/admin/content/delete') {
+        // Step 1: Authentication check
+        if (!zed_user_can_access_admin()) {
+            Router::redirect('/admin/login');
+        }
+        
+        // Step 2: Capability check
+        if (!zed_current_user_can('delete_content')) {
+            Router::redirect('/admin/content?msg=permission_denied');
+        }
+        
+        $id = $_GET['id'] ?? null;
+        
+        // Step 3: Validate ID is numeric
+        if (!$id || !is_numeric($id)) {
+            Router::redirect('/admin/content?msg=invalid_id');
+        }
+        
+        $id = (int)$id;
+        
+        try {
+            $db = Database::getInstance();
+            
+            // Step 4: Check if content exists and get author
+            $content = $db->queryOne(
+                "SELECT id, author_id, title FROM zed_content WHERE id = :id",
+                ['id' => $id]
+            );
+            
+            if (!$content) {
+                Router::redirect('/admin/content?msg=not_found');
+            }
+            
+            // Step 5: Ownership check for non-admins/editors
+            // Users without 'delete_others_content' can only delete their own content
+            $currentUserId = Auth::id();
+            $contentAuthorId = (int)($content['author_id'] ?? 0);
+            
+            if (!zed_current_user_can('delete_others_content') && $contentAuthorId !== $currentUserId) {
+                Router::redirect('/admin/content?msg=permission_denied');
+            }
+            
+            // Step 6: Perform the DELETE query
+            $db->query("DELETE FROM zed_content WHERE id = :id", ['id' => $id]);
+            
+            // Step 7: Redirect with success message
+            Router::redirect('/admin/content?msg=deleted');
+            
+        } catch (Exception $e) {
+            Router::redirect('/admin/content?msg=error');
+        }
+        
         return;
     }
 
@@ -2138,6 +2234,40 @@ Event::on('route_request', function (array $request): void {
             $dataJson = json_encode($data);
             $userId = Auth::user()['id'] ?? 1;
             
+            // =================================================================
+            // CONTENT REVISION SYSTEM
+            // Capture current state before update for version history
+            // =================================================================
+            $capturedRevision = null;
+            if ($id) {
+                try {
+                    // Fetch current content state before modification
+                    $currentContent = $db->queryOne(
+                        "SELECT id, title, slug, type, data, author_id FROM zed_content WHERE id = :id",
+                        ['id' => $id]
+                    );
+                    
+                    if ($currentContent) {
+                        // Store full state for revision
+                        $capturedRevision = [
+                            'content_id' => (int)$id,
+                            'data_json' => json_encode([
+                                'title' => $currentContent['title'],
+                                'slug' => $currentContent['slug'],
+                                'type' => $currentContent['type'],
+                                'data' => is_string($currentContent['data']) 
+                                    ? json_decode($currentContent['data'], true) 
+                                    : $currentContent['data'],
+                            ]),
+                            'author_id' => $userId, // Who made this edit
+                        ];
+                    }
+                } catch (Exception $e) {
+                    // Don't fail the save if revision capture fails
+                    error_log("Revision capture failed: " . $e->getMessage());
+                }
+            }
+            
             // Helper to execute query with auto-migration (self-healing)
             $executeSave = function() use ($db, $id, $title, $slug, $type, $dataJson, $plainText, $userId) {
                 if ($id) {
@@ -2157,10 +2287,44 @@ Event::on('route_request', function (array $request): void {
                 }
             };
             
+            // Helper to save revision and cleanup old ones
+            $saveRevision = function() use ($db, $capturedRevision) {
+                if (!$capturedRevision) return;
+                
+                try {
+                    // Insert the revision
+                    $db->query(
+                        "INSERT INTO zed_content_revisions (content_id, data_json, author_id, created_at) VALUES (:content_id, :data_json, :author_id, NOW())",
+                        $capturedRevision
+                    );
+                    
+                    // Cleanup: Keep only last 10 revisions per content
+                    $contentId = $capturedRevision['content_id'];
+                    $db->query(
+                        "DELETE FROM zed_content_revisions 
+                         WHERE content_id = :content_id 
+                         AND id NOT IN (
+                             SELECT id FROM (
+                                 SELECT id FROM zed_content_revisions 
+                                 WHERE content_id = :content_id2 
+                                 ORDER BY created_at DESC 
+                                 LIMIT 10
+                             ) AS keep_rows
+                         )",
+                        ['content_id' => $contentId, 'content_id2' => $contentId]
+                    );
+                } catch (Exception $e) {
+                    // Table might not exist yet, ignore
+                    error_log("Revision save failed: " . $e->getMessage());
+                }
+            };
+            
             try {
                 $response = $executeSave();
                 
                 if ($response['success']) {
+                    // Save revision after successful update
+                    $saveRevision();
                     \Core\Event::trigger('zed_post_saved', $response['id'], $data);
                 }
             } catch (PDOException $e) {
@@ -2170,6 +2334,10 @@ Event::on('route_request', function (array $request): void {
                     $db->query("ALTER TABLE zed_content ADD COLUMN plain_text LONGTEXT NULL AFTER data");
                     // Retry
                     $response = $executeSave();
+                    // Save revision after retry success
+                    if ($response['success']) {
+                        $saveRevision();
+                    }
                 } else {
                     throw $e;
                 }

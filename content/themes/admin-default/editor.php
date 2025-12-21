@@ -30,19 +30,62 @@ if ($postId) {
         $post = $db->queryOne("SELECT * FROM zed_content WHERE id = :id", ['id' => $postId]);
         
         if ($post) {
+            // Parse the JSON data column
+            $data = is_string($post['data']) ? json_decode($post['data'], true) : ($post['data'] ?? []);
+            if (!is_array($data)) $data = [];
+            
             // Load the content for the JS Editor
-            $data = is_string($post['data']) ? json_decode($post['data'], true) : $post['data'];
-            $jsonContent = isset($data['content']) ? json_encode($data['content']) : 'null';
-            // Extract featured image URL from data
+            $jsonContent = isset($data['content']) ? json_encode($data['content']) : '[]';
+            
+            // Extract metadata from parsed data
             $featuredImageUrl = $data['featured_image'] ?? '';
+            $postStatus = $data['status'] ?? 'draft';
+            $postExcerpt = $data['excerpt'] ?? '';
+        } else {
+            $data = [];
+            $postStatus = 'draft';
+            $postExcerpt = '';
         }
     } catch (Exception $e) {
         $post = null;
+        $data = [];
+        $postStatus = 'draft';
+        $postExcerpt = '';
     }
+} else {
+    $data = [];
+    $postStatus = 'draft';
+    $postExcerpt = '';
 }
 
-// Safe JSON for JS
-$initialDataSafe = $jsonContent ?: '{}';
+// BlockNote requires a non-empty array with at least one valid block
+// Provide a default empty paragraph block if no content exists
+$defaultBlock = [
+    [
+        'id' => uniqid('block_'),
+        'type' => 'paragraph',
+        'props' => [
+            'textColor' => 'default',
+            'backgroundColor' => 'default',
+            'textAlignment' => 'left',
+        ],
+        'content' => [],
+        'children' => [],
+    ]
+];
+
+// Safe JSON for JS - ensure it has at least one block for BlockNote
+if (!isset($jsonContent) || $jsonContent === 'null' || $jsonContent === '[]' || empty($jsonContent)) {
+    $initialDataSafe = json_encode($defaultBlock);
+} else {
+    // Validate that content is a non-empty array
+    $decoded = json_decode($jsonContent, true);
+    if (!is_array($decoded) || empty($decoded)) {
+        $initialDataSafe = json_encode($defaultBlock);
+    } else {
+        $initialDataSafe = $jsonContent;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -112,8 +155,8 @@ $initialDataSafe = $jsonContent ?: '{}';
             <div>
                 <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Status</label>
                 <select id="post-status" class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    <option value="draft" <?= ($post['data']['status'] ?? '') === 'draft' ? 'selected' : '' ?>>Draft</option>
-                    <option value="published" <?= ($post['data']['status'] ?? '') === 'published' ? 'selected' : '' ?>>Published</option>
+                    <option value="draft" <?= ($postStatus ?? 'draft') === 'draft' ? 'selected' : '' ?>>Draft</option>
+                    <option value="published" <?= ($postStatus ?? '') === 'published' ? 'selected' : '' ?>>Published</option>
                 </select>
             </div>
             
@@ -218,7 +261,7 @@ $initialDataSafe = $jsonContent ?: '{}';
             <!-- Excerpt Section -->
             <div class="border-t border-gray-100 pt-4 mt-4">
                 <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Excerpt</label>
-                <textarea id="post-excerpt" rows="3" class="w-full border-gray-300 rounded-md shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Write a short summary..."><?= htmlspecialchars($post['data']['excerpt'] ?? '') ?></textarea>
+                <textarea id="post-excerpt" rows="3" class="w-full border-gray-300 rounded-md shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Write a short summary..."><?= htmlspecialchars($postExcerpt ?? '') ?></textarea>
             </div>
         </div>
     </aside>
@@ -226,7 +269,28 @@ $initialDataSafe = $jsonContent ?: '{}';
 
 <!-- DATA INJECTION -->
 <script>
+    // Default block for BlockNote (must have at least one valid block)
+    const DEFAULT_BLOCK = [{
+        id: 'default_' + Date.now(),
+        type: 'paragraph',
+        props: { textColor: 'default', backgroundColor: 'default', textAlignment: 'left' },
+        content: [],
+        children: []
+    }];
+    
+    // Initialize editor content - BlockNote requires non-empty array
     window.ZERO_INITIAL_CONTENT = <?= $initialDataSafe ?>;
+    
+    // Validate and fallback to default block if invalid
+    if (!window.ZERO_INITIAL_CONTENT || 
+        !Array.isArray(window.ZERO_INITIAL_CONTENT) || 
+        window.ZERO_INITIAL_CONTENT.length === 0) {
+        window.ZERO_INITIAL_CONTENT = DEFAULT_BLOCK;
+    }
+    
+    // Ensure zero_editor_content is initialized for save handler
+    window.zero_editor_content = window.ZERO_INITIAL_CONTENT;
+    
     const postId = "<?= htmlspecialchars($postId ?? '') ?>";
     const baseUrl = "<?= $base_url ?>";
     // Pre-populate featured image URL from PHP (if editing existing post)
@@ -337,7 +401,14 @@ const featPlaceholder = document.getElementById('featured-placeholder');
 const featImg = document.getElementById('featured-img');
 const removeBtn = document.getElementById('remove-featured');
 const featDropZone = document.getElementById('featured-image-drop');
-// featuredImageUrl is already defined in DATA INJECTION block from PHP\r\n// Only set to null if it wasn't pre-populated\r\nfeaturedImageUrl = featuredImageUrl || null;
+// featuredImageUrl is already defined in DATA INJECTION block from PHP
+// Initialize UI based on pre-existing image
+if (featuredImageUrl && featuredImageUrl.trim() !== '') {
+    featImg.src = featuredImageUrl;
+    featPreview.classList.remove('hidden');
+    featPlaceholder.classList.add('hidden');
+    removeBtn.classList.remove('hidden');
+}
 
 featUpload.addEventListener('change', async (e) => {
     const file = e.target.files[0];
