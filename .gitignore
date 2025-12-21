@@ -1,6 +1,6 @@
 # --- Zed CMS Core Protection ---
 config.php
-install.php
+
 migrate_options.php
 
 # --- User Content ---
