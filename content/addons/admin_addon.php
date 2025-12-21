@@ -409,6 +409,16 @@ function zed_get_admin_menu_items(): array
         ];
     }
     
+    // Themes - admin only
+    if (zed_current_user_can('manage_themes')) {
+        $items[] = [
+            'id' => 'themes',
+            'label' => 'Themes',
+            'icon' => 'palette',
+            'url' => $base . '/admin/themes',
+        ];
+    }
+    
     // Wiki / Documentation
     if (zed_current_user_can('view_dashboard')) {
         $items[] = [
@@ -2253,6 +2263,321 @@ Event::on('route_request', function (array $request): void {
         }
         
         Router::setHandled('');
+        return;
+    }
+
+    // =========================================================================
+    // ADDON MANAGER API
+    // =========================================================================
+
+    // POST /admin/api/toggle-addon - Enable/disable an addon
+    if ($uri === '/admin/api/toggle-addon' && $request['method'] === 'POST') {
+        header('Content-Type: application/json');
+        
+        if (!zed_user_can_access_admin() || !zed_current_user_can('manage_addons')) {
+            echo json_encode(['success' => false, 'error' => 'Permission denied']);
+            Router::setHandled('');
+            return;
+        }
+        
+        try {
+            $input = json_decode(file_get_contents('php://input'), true);
+            $filename = basename($input['filename'] ?? '');
+            
+            if (empty($filename)) {
+                throw new Exception('No addon filename provided');
+            }
+            
+            // Prevent disabling system addons
+            $systemAddons = defined('ZERO_SYSTEM_ADDONS') ? ZERO_SYSTEM_ADDONS : ['admin_addon.php', 'frontend_addon.php'];
+            if (in_array($filename, $systemAddons, true)) {
+                throw new Exception('System addons cannot be disabled');
+            }
+            
+            // Verify addon file exists
+            $addonsDir = dirname(__DIR__) . '/addons';
+            if (!file_exists($addonsDir . '/' . $filename)) {
+                throw new Exception('Addon file not found');
+            }
+            
+            $db = Database::getInstance();
+            
+            // Get current active_addons list
+            $current = $db->queryValue("SELECT option_value FROM zed_options WHERE option_name = 'active_addons'");
+            $activeAddons = $current ? json_decode($current, true) : null;
+            
+            // If no option exists, initialize with all non-system addons as active
+            if ($activeAddons === null) {
+                $activeAddons = [];
+                foreach (glob($addonsDir . '/*.php') as $file) {
+                    $name = basename($file);
+                    if (!in_array($name, $systemAddons, true)) {
+                        $activeAddons[] = $name;
+                    }
+                }
+            }
+            
+            // Toggle the addon
+            $isActive = in_array($filename, $activeAddons, true);
+            if ($isActive) {
+                $activeAddons = array_values(array_diff($activeAddons, [$filename]));
+                $newState = false;
+            } else {
+                $activeAddons[] = $filename;
+                $newState = true;
+            }
+            
+            // Save back to database
+            $jsonValue = json_encode(array_values(array_unique($activeAddons)));
+            $exists = $db->queryValue("SELECT COUNT(*) FROM zed_options WHERE option_name = 'active_addons'");
+            if ($exists) {
+                $db->query("UPDATE zed_options SET option_value = :val WHERE option_name = 'active_addons'", ['val' => $jsonValue]);
+            } else {
+                $db->query("INSERT INTO zed_options (option_name, option_value, autoload) VALUES ('active_addons', :val, 1)", ['val' => $jsonValue]);
+            }
+            
+            // Get addon name for message
+            $addonName = ucwords(str_replace(['_', '.php'], [' ', ''], $filename));
+            $content = file_get_contents($addonsDir . '/' . $filename, false, null, 0, 2048);
+            if (preg_match('/Addon Name:\s*(.*)$/mi', $content, $m)) {
+                $addonName = trim($m[1]);
+            }
+            
+            echo json_encode([
+                'success' => true,
+                'active' => $newState,
+                'message' => $addonName . ($newState ? ' Activated' : ' Deactivated')
+            ]);
+            
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+        
+        Router::setHandled('');
+        return;
+    }
+
+    // POST /admin/api/upload-addon - Upload a new addon file
+    if ($uri === '/admin/api/upload-addon' && $request['method'] === 'POST') {
+        header('Content-Type: application/json');
+        
+        if (!zed_user_can_access_admin() || !zed_current_user_can('manage_addons')) {
+            echo json_encode(['success' => false, 'error' => 'Permission denied']);
+            Router::setHandled('');
+            return;
+        }
+        
+        try {
+            if (!isset($_FILES['addon']) || $_FILES['addon']['error'] !== UPLOAD_ERR_OK) {
+                throw new Exception('No file uploaded or upload error');
+            }
+            
+            $file = $_FILES['addon'];
+            $filename = basename($file['name']);
+            
+            // Validate extension
+            if (!str_ends_with(strtolower($filename), '.php')) {
+                throw new Exception('Only .php files are allowed');
+            }
+            
+            // Sanitize filename
+            $safeFilename = preg_replace('/[^a-zA-Z0-9_\-\.]/', '_', $filename);
+            
+            // Move to addons directory
+            $addonsDir = dirname(__DIR__) . '/addons';
+            $destPath = $addonsDir . '/' . $safeFilename;
+            
+            if (file_exists($destPath)) {
+                throw new Exception('An addon with this name already exists');
+            }
+            
+            if (!move_uploaded_file($file['tmp_name'], $destPath)) {
+                throw new Exception('Failed to save addon file');
+            }
+            
+            // Auto-activate the new addon
+            $db = Database::getInstance();
+            $current = $db->queryValue("SELECT option_value FROM zed_options WHERE option_name = 'active_addons'");
+            $activeAddons = $current ? json_decode($current, true) : [];
+            if (!is_array($activeAddons)) $activeAddons = [];
+            
+            $activeAddons[] = $safeFilename;
+            $jsonValue = json_encode(array_values(array_unique($activeAddons)));
+            
+            $exists = $db->queryValue("SELECT COUNT(*) FROM zed_options WHERE option_name = 'active_addons'");
+            if ($exists) {
+                $db->query("UPDATE zed_options SET option_value = :val WHERE option_name = 'active_addons'", ['val' => $jsonValue]);
+            } else {
+                $db->query("INSERT INTO zed_options (option_name, option_value, autoload) VALUES ('active_addons', :val, 1)", ['val' => $jsonValue]);
+            }
+            
+            echo json_encode([
+                'success' => true,
+                'filename' => $safeFilename,
+                'message' => 'Addon uploaded and activated'
+            ]);
+            
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+        
+        Router::setHandled('');
+        return;
+    }
+
+    // =========================================================================
+    // THEME MANAGER API
+    // =========================================================================
+
+    // POST /admin/api/activate-theme - Switch the active theme
+    if ($uri === '/admin/api/activate-theme' && $request['method'] === 'POST') {
+        header('Content-Type: application/json');
+        
+        if (!zed_user_can_access_admin() || !zed_current_user_can('manage_themes')) {
+            echo json_encode(['success' => false, 'error' => 'Permission denied']);
+            Router::setHandled('');
+            return;
+        }
+        
+        try {
+            $input = json_decode(file_get_contents('php://input'), true);
+            $themeName = basename($input['theme'] ?? '');
+            
+            if (empty($themeName)) {
+                throw new Exception('No theme specified');
+            }
+            
+            // Validate theme folder exists
+            $themesDir = dirname(__DIR__) . '/themes';
+            $themePath = $themesDir . '/' . $themeName;
+            
+            if (!is_dir($themePath)) {
+                throw new Exception('Theme not found');
+            }
+            
+            // Exclude admin theme
+            if ($themeName === 'admin-default') {
+                throw new Exception('Cannot activate admin theme as frontend theme');
+            }
+            
+            $db = Database::getInstance();
+            
+            // Update or insert active_theme option
+            $exists = $db->queryValue("SELECT COUNT(*) FROM zed_options WHERE option_name = 'active_theme'");
+            if ($exists) {
+                $db->query("UPDATE zed_options SET option_value = :val WHERE option_name = 'active_theme'", ['val' => $themeName]);
+            } else {
+                $db->query("INSERT INTO zed_options (option_name, option_value, autoload) VALUES ('active_theme', :val, 1)", ['val' => $themeName]);
+            }
+            
+            // Trigger theme switched event
+            Event::trigger('zed_theme_switched', $themeName);
+            
+            // Get theme display name
+            $displayName = $themeName;
+            $jsonPath = $themePath . '/theme.json';
+            if (file_exists($jsonPath)) {
+                $themeData = json_decode(file_get_contents($jsonPath), true);
+                $displayName = $themeData['name'] ?? $themeName;
+            }
+            
+            echo json_encode([
+                'success' => true,
+                'theme' => $themeName,
+                'message' => $displayName . ' activated'
+            ]);
+            
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        }
+        
+        Router::setHandled('');
+        return;
+    }
+
+    // /admin/themes - Theme Manager page
+    if ($uri === '/admin/themes') {
+        if (!zed_user_can_access_admin()) {
+            Router::redirect('/admin/login');
+        }
+        
+        if (!zed_current_user_can('manage_themes')) {
+            Router::setHandled(zed_render_forbidden());
+            return;
+        }
+        
+        // Scan themes directory
+        $themesDir = dirname(__DIR__) . '/themes';
+        $themes = [];
+        
+        if (is_dir($themesDir)) {
+            foreach (scandir($themesDir) as $folder) {
+                if ($folder === '.' || $folder === '..' || $folder === 'admin-default') continue;
+                
+                $themePath = $themesDir . '/' . $folder;
+                if (!is_dir($themePath)) continue;
+                
+                $theme = [
+                    'folder' => $folder,
+                    'name' => ucwords(str_replace(['-', '_'], ' ', $folder)),
+                    'version' => '1.0.0',
+                    'author' => 'Unknown',
+                    'description' => '',
+                    'colors' => [
+                        'brand' => '#256af4',
+                        'background' => '#ffffff',
+                        'text' => '#111827'
+                    ],
+                    'screenshot' => null
+                ];
+                
+                // Parse theme.json
+                $jsonPath = $themePath . '/theme.json';
+                if (file_exists($jsonPath)) {
+                    $data = json_decode(file_get_contents($jsonPath), true);
+                    if ($data) {
+                        $theme['name'] = $data['name'] ?? $theme['name'];
+                        $theme['version'] = $data['version'] ?? $theme['version'];
+                        $theme['author'] = $data['author'] ?? $theme['author'];
+                        $theme['description'] = $data['description'] ?? $theme['description'];
+                        if (isset($data['settings'])) {
+                            $theme['colors']['brand'] = $data['settings']['brand_color'] ?? $theme['colors']['brand'];
+                            $theme['colors']['background'] = $data['settings']['background'] ?? $theme['colors']['background'];
+                            $theme['colors']['text'] = $data['settings']['text_color'] ?? $theme['colors']['text'];
+                        }
+                    }
+                }
+                
+                // Check for screenshot
+                foreach (['screenshot.png', 'screenshot.jpg', 'screenshot.webp'] as $img) {
+                    if (file_exists($themePath . '/' . $img)) {
+                        $theme['screenshot'] = Router::getBasePath() . '/content/themes/' . $folder . '/' . $img;
+                        break;
+                    }
+                }
+                
+                $themes[] = $theme;
+            }
+        }
+        
+        // Get current active theme
+        try {
+            $db = Database::getInstance();
+            $activeTheme = $db->queryValue("SELECT option_value FROM zed_options WHERE option_name = 'active_theme'") ?: 'starter-theme';
+        } catch (Exception $e) {
+            $activeTheme = 'starter-theme';
+        }
+        
+        $current_user = Auth::user();
+        $current_page = 'themes';
+        $page_title = 'Themes';
+        $adminThemePath = __DIR__ . '/../themes/admin-default';
+        $content_partial = $adminThemePath . '/partials/themes-content.php';
+        
+        ob_start();
+        require $adminThemePath . '/admin-layout.php';
+        $content = ob_get_clean();
+        Router::setHandled($content);
         return;
     }
 

@@ -104,13 +104,53 @@ if (is_dir($addonsDir)) {
     }
     
     // ─────────────────────────────────────────────────────────────────────
-    // PHASE 2: Load all other addons dynamically (skip system addons)
+    // PHASE 2: Load only ACTIVE addons (respects Addon Manager settings)
     // ─────────────────────────────────────────────────────────────────────
+    
+    // Fetch active_addons list from database (early DB connection)
+    $activeAddonsList = null; // null = load all (backward compatible)
+    try {
+        $dbConfig = $config['database'] ?? [];
+        if (!empty($dbConfig['host']) && !empty($dbConfig['name'])) {
+            $dsn = sprintf(
+                'mysql:host=%s;port=%d;dbname=%s;charset=%s',
+                $dbConfig['host'],
+                $dbConfig['port'] ?? 3306,
+                $dbConfig['name'],
+                $dbConfig['charset'] ?? 'utf8mb4'
+            );
+            $pdo = new PDO($dsn, $dbConfig['user'] ?? '', $dbConfig['password'] ?? '', [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            ]);
+            
+            $stmt = $pdo->prepare("SELECT option_value FROM zed_options WHERE option_name = 'active_addons' LIMIT 1");
+            $stmt->execute();
+            $result = $stmt->fetchColumn();
+            
+            if ($result !== false) {
+                $decoded = json_decode($result, true);
+                if (is_array($decoded)) {
+                    $activeAddonsList = $decoded;
+                }
+            }
+        }
+    } catch (Exception $e) {
+        // If DB fails, load all addons (graceful degradation)
+        $activeAddonsList = null;
+    }
+    
+    // Load non-system addons based on active list
     foreach (glob($addonsDir . '/*.php') as $addonFile) {
         $addonBasename = basename($addonFile);
         
         // Skip system addons - they're already loaded above
         if (in_array($addonBasename, $system_addons, true)) {
+            continue;
+        }
+        
+        // If we have an active list, only load addons in that list
+        if ($activeAddonsList !== null && !in_array($addonBasename, $activeAddonsList, true)) {
             continue;
         }
         
