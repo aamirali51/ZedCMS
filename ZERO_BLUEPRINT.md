@@ -1,8 +1,8 @@
 # Zed CMS — Master Architecture Blueprint
 
-> **Version:** 2.0.0  
+> **Version:** 2.1.0  
 > **Generated:** 2025-12-21 (Updated)  
-> **Last Update:** 2025-12-21 — Migration System, Version Tracking, Safe Upgrades  
+> **Last Update:** 2025-12-21 — Content Revision System, BlockNote Fix, Vite Relative Paths  
 > **Purpose:** Source of Truth for all development activities.
 
 ---
@@ -301,6 +301,11 @@ Authors can only see/edit content where `author_id = current_user_id`. This is e
 | **Migration System** | `Core\Migrations` | Incremental version upgrades, runs once per version |
 | **Version Tracking** | `zed_options` | Stores `zed_version` and `zed_migrations_log` |
 | **Safe Upgrades** | `App::run()` | Auto-runs migrations on every request (idempotent) |
+| **Content Revision System** | `save-post` route | Auto-saves previous state before update (max 10) |
+| **Revision Cleanup** | `admin_addon.php` | Rolling limit keeps only last 10 revisions per content |
+| **Revision Helper** | `zed_get_revisions()` | Returns decoded revision history for content ID |
+| **BlockNote Default Block** | `editor.php` | Provides valid paragraph block when content empty |
+| **Vite Relative Paths** | `vite.config.js` | Uses `base: './'` for portable asset URLs |
 | **Theme Menu CSS** | `zero-one/index.php` | Horizontal nav with dropdowns |
 
 ### 🚧 Mocked/Static (Visual Only — Not Connected)
@@ -387,6 +392,20 @@ CREATE TABLE zed_categories (
     slug VARCHAR(255) NOT NULL UNIQUE,
     created_at DATETIME,
     updated_at DATETIME
+);
+```
+
+**Table: `zed_content_revisions`** (✅ NEW - v2.1.0)
+```sql
+CREATE TABLE zed_content_revisions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    content_id INT NOT NULL,            -- FK to zed_content
+    data_json JSON NOT NULL,            -- Full snapshot {title, slug, type, data}
+    author_id INT NOT NULL,             -- Who made the edit
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_content_id (content_id),
+    INDEX idx_created_at (created_at),
+    FOREIGN KEY (content_id) REFERENCES zed_content(id) ON DELETE CASCADE
 );
 ```
 
