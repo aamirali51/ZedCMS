@@ -13,6 +13,14 @@ declare(strict_types=1);
  */
 
 // 1. Load configuration
+if (!file_exists(__DIR__ . '/config.php')) {
+    if (file_exists(__DIR__ . '/install.php')) {
+        header('Location: install.php');
+        exit;
+    }
+    die('Configuration file (config.php) is missing and installer (install.php) could not be found.');
+}
+
 $config = require __DIR__ . '/config.php';
 
 // 2. Autoload classes in /core (PSR-4 style autoloader)
