@@ -59,6 +59,47 @@ final class Event
     }
 
     /**
+     * Storage for scoped listeners with context conditions.
+     * Structure: ['event_name' => [priority => [['callback' => callable, 'context' => array]]]]
+     *
+     * @var array<string, array<int, array<array{callback: callable, context: array<string, mixed>}>>>
+     */
+    private static array $scopedListeners = [];
+
+    /**
+     * Register a SCOPED listener that only fires when context matches.
+     * 
+     * This solves WordPress's biggest hook flaw - hooks fire globally.
+     * With scoped hooks, you can bind to specific post types, templates, etc.
+     *
+     * Usage:
+     *   Event::onScoped('zed_head', function() {
+     *       echo '<link rel="stylesheet" href="product-styles.css">';
+     *   }, ['post_type' => 'product']);
+     *
+     * @param string   $name     The event name (hook).
+     * @param callable $callback The callback to execute.
+     * @param array<string, mixed> $context Context conditions to match.
+     * @param int      $priority Priority of execution. Default: 10.
+     * @return void
+     */
+    public static function onScoped(string $name, callable $callback, array $context, int $priority = 10): void
+    {
+        if (!isset(self::$scopedListeners[$name])) {
+            self::$scopedListeners[$name] = [];
+        }
+
+        if (!isset(self::$scopedListeners[$name][$priority])) {
+            self::$scopedListeners[$name][$priority] = [];
+        }
+
+        self::$scopedListeners[$name][$priority][] = [
+            'callback' => $callback,
+            'context' => $context,
+        ];
+    }
+
+    /**
      * Remove a listener from an event.
      *
      * @param string   $name     The event name.
@@ -94,14 +135,65 @@ final class Event
      *
      * @param string $name    The event name (hook).
      * @param mixed  $payload Optional data to pass to listeners.
+     * @param mixed  ...$args Additional arguments.
      * @return void
      */
-    public static function trigger(string $name, mixed $payload = null): void
+    public static function trigger(string $name, mixed $payload = null, mixed ...$args): void
     {
         $listeners = self::getSortedListeners($name);
 
         foreach ($listeners as $callback) {
-            $callback($payload);
+            $callback($payload, ...$args);
+        }
+    }
+
+    /**
+     * Trigger a SCOPED action event with context matching.
+     * 
+     * Only executes callbacks whose context conditions match the current context.
+     * Also fires regular (non-scoped) listeners.
+     *
+     * Usage:
+     *   Event::triggerScoped('zed_head', ['post_type' => 'product'], $post);
+     *
+     * @param string $name    The event name (hook).
+     * @param array<string, mixed> $context Current context to match against.
+     * @param mixed  $payload Optional data to pass to listeners.
+     * @param mixed  ...$args Additional arguments.
+     * @return void
+     */
+    public static function triggerScoped(string $name, array $context, mixed $payload = null, mixed ...$args): void
+    {
+        // First, fire all regular listeners
+        self::trigger($name, $payload, ...$args);
+
+        // Then, fire scoped listeners that match context
+        if (!isset(self::$scopedListeners[$name])) {
+            return;
+        }
+
+        // Sort by priority
+        $priorities = self::$scopedListeners[$name];
+        ksort($priorities, SORT_NUMERIC);
+
+        foreach ($priorities as $listeners) {
+            foreach ($listeners as $listener) {
+                $callback = $listener['callback'];
+                $requiredContext = $listener['context'];
+
+                // Check if all required context keys match
+                $matches = true;
+                foreach ($requiredContext as $key => $value) {
+                    if (!isset($context[$key]) || $context[$key] !== $value) {
+                        $matches = false;
+                        break;
+                    }
+                }
+
+                if ($matches) {
+                    $callback($payload, ...$args);
+                }
+            }
         }
     }
 

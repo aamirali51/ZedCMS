@@ -372,6 +372,12 @@ $debug_mode = $options['debug_mode'] ?? '0';
                 <span class="material-symbols-outlined tab-icon text-[20px]">search</span>
                 SEO
             </button>
+            <?php if (function_exists('zed_get_theme_settings') && !empty(zed_get_theme_settings())): ?>
+            <button class="tab-button" data-tab="theme">
+                <span class="material-symbols-outlined tab-icon text-[20px]">palette</span>
+                Theme
+            </button>
+            <?php endif; ?>
             <button class="tab-button" data-tab="system">
                 <span class="material-symbols-outlined tab-icon text-[20px]">settings</span>
                 System
@@ -534,6 +540,65 @@ $debug_mode = $options['debug_mode'] ?? '0';
                 </div>
             </div>
         </div>
+        
+        <?php if (function_exists('zed_get_theme_settings') && !empty(zed_get_theme_settings())): ?>
+        <!-- ========== THEME TAB ========== -->
+        <div class="settings-panel" id="panel-theme">
+            <div class="settings-card">
+                <div class="settings-card-header">
+                    <span class="material-symbols-outlined text-purple-500">palette</span>
+                    <h3>Theme Options (<?= htmlspecialchars(defined('ZED_ACTIVE_THEME') ? ZED_ACTIVE_THEME : 'aurora') ?>)</h3>
+                </div>
+                <div class="settings-card-body">
+                    <?php 
+                    $themeSettings = zed_get_theme_settings();
+                    foreach ($themeSettings as $setting): 
+                        $currentValue = zed_theme_option($setting['id'], $setting['default']);
+                        $fieldName = 'theme_' . $setting['id'];
+                    ?>
+                    <div class="form-group">
+                        <label class="form-label" for="<?= $fieldName ?>"><?= htmlspecialchars($setting['label']) ?></label>
+                        
+                        <?php if ($setting['type'] === 'text'): ?>
+                        <input type="text" id="<?= $fieldName ?>" name="<?= $fieldName ?>" class="form-input" 
+                               value="<?= htmlspecialchars($currentValue) ?>">
+                               
+                        <?php elseif ($setting['type'] === 'textarea'): ?>
+                        <textarea id="<?= $fieldName ?>" name="<?= $fieldName ?>" class="form-input" rows="3"><?= htmlspecialchars($currentValue) ?></textarea>
+                        
+                        <?php elseif ($setting['type'] === 'color'): ?>
+                        <div class="flex items-center gap-3">
+                            <input type="color" id="<?= $fieldName ?>" name="<?= $fieldName ?>" 
+                                   value="<?= htmlspecialchars($currentValue) ?>" 
+                                   class="w-12 h-10 rounded border border-gray-200 cursor-pointer">
+                            <input type="text" value="<?= htmlspecialchars($currentValue) ?>" 
+                                   class="form-input w-32" 
+                                   oninput="document.getElementById('<?= $fieldName ?>').value = this.value"
+                                   onchange="document.getElementById('<?= $fieldName ?>').value = this.value">
+                        </div>
+                        
+                        <?php elseif ($setting['type'] === 'checkbox'): ?>
+                        <div class="toggle-wrapper" style="border-bottom: none; padding: 0;">
+                            <div></div>
+                            <div class="toggle-switch <?= $currentValue ? 'active' : '' ?>" 
+                                 data-setting="<?= $fieldName ?>" data-value="<?= $currentValue ? '1' : '0' ?>"></div>
+                        </div>
+                        
+                        <?php elseif ($setting['type'] === 'select' && !empty($setting['options'])): ?>
+                        <select id="<?= $fieldName ?>" name="<?= $fieldName ?>" class="form-input form-select">
+                            <?php foreach ($setting['options'] as $value => $label): ?>
+                            <option value="<?= htmlspecialchars($value) ?>" <?= $currentValue == $value ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($label) ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <?php endif; ?>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
         
         <!-- ========== SYSTEM TAB ========== -->
         <div class="settings-panel" id="panel-system">

@@ -140,7 +140,9 @@ if (is_dir($addonsDir)) {
         $activeAddonsList = null;
     }
     
-    // Load non-system addons based on active list
+    // ─────────────────────────────────────────────────────────────────────
+    // Load single-file addons: addons/*.php
+    // ─────────────────────────────────────────────────────────────────────
     foreach (glob($addonsDir . '/*.php') as $addonFile) {
         $addonBasename = basename($addonFile);
         
@@ -151,6 +153,26 @@ if (is_dir($addonsDir)) {
         
         // If we have an active list, only load addons in that list
         if ($activeAddonsList !== null && !in_array($addonBasename, $activeAddonsList, true)) {
+            continue;
+        }
+        
+        require_once $addonFile;
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────
+    // Load folder-based addons: addons/*/addon.php
+    // ─────────────────────────────────────────────────────────────────────
+    foreach (glob($addonsDir . '/*/addon.php') as $addonFile) {
+        $folderName = basename(dirname($addonFile));
+        
+        // Skip if folder name matches a system addon (without .php)
+        $folderAsPHP = $folderName . '.php';
+        if (in_array($folderAsPHP, $system_addons, true)) {
+            continue;
+        }
+        
+        // If we have an active list, only load addons in that list (using folder name as identifier)
+        if ($activeAddonsList !== null && !in_array($folderName, $activeAddonsList, true)) {
             continue;
         }
         

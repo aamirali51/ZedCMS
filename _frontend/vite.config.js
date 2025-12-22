@@ -13,9 +13,7 @@ export default defineConfig({
             output: {
                 entryFileNames: 'editor.bundle.js',
                 // Keep assets in same folder as bundle
-                assetFileNames: 'assets/[name]-[hash][extname]',
-                format: 'iife',
-                name: 'ZeroEditor'
+                assetFileNames: 'assets/[name][extname]',
             }
         }
     },

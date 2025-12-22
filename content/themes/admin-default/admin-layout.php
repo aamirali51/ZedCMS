@@ -34,27 +34,14 @@ $nav_items = zed_get_admin_menu_items();
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title><?= htmlspecialchars($page_title) ?> — Zed Panel</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        "primary": "#4f46e5",
-                        "primary-hover": "#4338ca",
-                        "accent-purple": "#7c3aed",
-                        "accent-green": "#10b981",
-                    },
-                    fontFamily: {
-                        "display": ["Inter", "sans-serif"],
-                        "body": ["Inter", "sans-serif"],
-                    },
-                },
-            },
-        }
-    </script>
+    <!-- Local Admin Styles -->
+    <link rel="stylesheet" href="<?= $base_url ?>/content/themes/admin-default/assets/js/assets/main.css">
+
     <style>
         /* Smooth transitions for content loading */
         .content-fade-in {
@@ -137,11 +124,11 @@ $nav_items = zed_get_admin_menu_items();
         
         <!-- Right Actions -->
         <div class="flex items-center gap-3">
-            <?php if ($current_page === 'content'): ?>
-            <a href="<?= $base_url ?>/admin/editor?new=true" 
+            <?php if ($current_page === 'content' || str_starts_with($current_page, 'cpt_')): ?>
+            <a href="<?= $base_url ?>/admin/editor?new=true<?= !empty($type) ? '&type=' . htmlspecialchars($type) : '' ?>" 
                class="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-medium transition-colors">
                 <span class="material-symbols-outlined text-[18px]">add</span>
-                New Content
+                New <?= !empty($type) && $type !== 'post' ? ucfirst($type) : 'Content' ?>
             </a>
             <?php endif; ?>
             

@@ -37,6 +37,10 @@ if (!function_exists('getStatus')) {
 
 if (!function_exists('buildContentUrl')) {
     function buildContentUrl($base_url, $params = []) {
+        // Merge with existing type param if present in global GET
+        if (isset($_GET['type']) && !isset($params['type'])) {
+            $params['type'] = $_GET['type'];
+        }
         $query = http_build_query(array_filter($params, fn($v) => $v !== '' && $v !== null));
         return $base_url . '/admin/content' . ($query ? '?' . $query : '');
     }
@@ -80,6 +84,7 @@ if (!function_exists('buildContentUrl')) {
         <!-- Search -->
         <form method="GET" action="<?= $base_url ?>/admin/content" class="flex items-center gap-2">
             <?php if ($status): ?><input type="hidden" name="status" value="<?= htmlspecialchars($status) ?>"><?php endif; ?>
+            <?php if (!empty($type)): ?><input type="hidden" name="type" value="<?= htmlspecialchars($type) ?>"><?php endif; ?>
             <div class="relative">
                 <input type="text" name="search" placeholder="Search content..." value="<?= htmlspecialchars($search) ?>" 
                        class="w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
@@ -222,7 +227,7 @@ if (!function_exists('buildContentUrl')) {
                 Get started by creating your first piece of content
             <?php endif; ?>
         </p>
-        <a href="<?= $base_url ?>/admin/editor?new=true" 
+        <a href="<?= $base_url ?>/admin/editor?new=true<?= !empty($type) ? '&type=' . htmlspecialchars($type) : '' ?>" 
            class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">
             <span class="material-symbols-outlined text-[18px]">add</span>
             Create Content

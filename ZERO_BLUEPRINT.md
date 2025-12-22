@@ -1,8 +1,8 @@
 # Zed CMS — Master Architecture Blueprint
 
-> **Version:** 2.1.0  
-> **Generated:** 2025-12-21 (Updated)  
-> **Last Update:** 2025-12-21 — Content Revision System, BlockNote Fix, Vite Relative Paths  
+> **Version:** 2.2.0  
+> **Generated:** 2025-12-22 (Updated)  
+> **Last Update:** 2025-12-22 — Theme API v2 (Scoped Hooks, CPT, Asset Injection, Dependencies)  
 > **Purpose:** Source of Truth for all development activities.
 
 ---
@@ -307,6 +307,20 @@ Authors can only see/edit content where `author_id = current_user_id`. This is e
 | **BlockNote Default Block** | `editor.php` | Provides valid paragraph block when content empty |
 | **Vite Relative Paths** | `vite.config.js` | Uses `base: './'` for portable asset URLs |
 | **Theme Menu CSS** | `zero-one/index.php` | Horizontal nav with dropdowns |
+| **Theme functions.php** | `frontend_addon.php` | Auto-loads active theme's functions.php on app_ready |
+| **Custom Post Types (CPT)** | `$ZED_POST_TYPES` | Global registry + `zed_register_post_type()` helper |
+| **CPT Admin Sidebar** | `admin_addon.php` | Dynamic menu items for registered CPTs |
+| **Theme Settings API** | `zed_add_theme_setting()` | Customizable theme options with DB storage |
+| **Theme Option Values** | `zed_theme_option()` | Get/set with `theme_{name}_{id}` prefix |
+| **Scoped Action Hooks** | `Event::onScoped()` | Context-aware hooks (post_type, template, etc.) |
+| **Scoped Triggers** | `Event::triggerScoped()` | Fire hooks with context matching |
+| **Asset Injection** | `zed_enqueue_theme_asset()` | Auto-resolve paths with Vite manifest support |
+| **Theme Dependencies** | `zed_register_theme_requirements()` | Declare required addons |
+| **Dependency Warnings** | `addons-content.php` | Addon Manager shows missing theme addons |
+| **Content Hooks** | `zed_before/after_content` | Theme injection points for author bios, etc. |
+| **Template Data API** | `zed_add_template_data()` | Inject PHP variables into templates |
+| **Template Filter** | `zed_template_data` filter | Dynamic template variable injection |
+| **Dynamic Theme Switching** | `frontend_addon.php` | Reads active_theme from database |
 
 ### 🚧 Mocked/Static (Visual Only — Not Connected)
 

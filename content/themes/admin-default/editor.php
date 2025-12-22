@@ -119,6 +119,9 @@ if (!isset($jsonContent) || $jsonContent === 'null' || $jsonContent === '[]' || 
             },
         }
     </script>
+    
+    <!-- BlockNote/Mantine Styles (from Vite build) -->
+    <link rel="stylesheet" href="<?= $base_url ?>/content/themes/admin-default/assets/js/assets/main.css">
 </head>
 
 <body class="bg-gray-50 h-screen overflow-hidden">
@@ -164,8 +167,37 @@ if (!isset($jsonContent) || $jsonContent === 'null' || $jsonContent === '[]' || 
             <div>
                 <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Type</label>
                 <select id="post-type" class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    <option value="page" <?= ($post['type'] ?? 'page') === 'page' ? 'selected' : '' ?>>Page</option>
-                    <option value="post" <?= ($post['type'] ?? '') === 'post' ? 'selected' : '' ?>>Post</option>
+                    <?php 
+                    global $ZED_POST_TYPES;
+                    $currentType = $post['type'] ?? ($_GET['type'] ?? 'post');
+                    
+                    // Default types if global registry is empty/missing
+                    $types = !empty($ZED_POST_TYPES) ? $ZED_POST_TYPES : [
+                        'post' => ['label' => 'Post'],
+                        'page' => ['label' => 'Page']
+                    ];
+                    
+                    foreach ($types as $typeKey => $config): 
+                        $label = $config['label'] ?? ucfirst($typeKey);
+                    ?>
+                    <option value="<?= $typeKey ?>" <?= $currentType === $typeKey ? 'selected' : '' ?>>
+                        <?= htmlspecialchars($label) ?>
+                    </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            
+            <!-- Page Attributes (Template) -->
+            <div id="page-attributes-section" class="hidden border-t border-gray-100 pt-4 mt-4">
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Page Template</label>
+                <select id="page-template" class="w-full border-gray-300 rounded-md shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500">
+                    <?php 
+                    $pData = is_string($post['data'] ?? '') ? json_decode($post['data'], true) : ($post['data'] ?? []);
+                    $curTemplate = $pData['template'] ?? 'default';
+                    ?>
+                    <option value="default" <?= $curTemplate === 'default' ? 'selected' : '' ?>>Default Template</option>
+                    <option value="contact" <?= $curTemplate === 'contact' ? 'selected' : '' ?>>Contact Page</option>
+                    <option value="landing" <?= $curTemplate === 'landing' ? 'selected' : '' ?>>Landing Page (Full Width)</option>
                 </select>
             </div>
 
@@ -210,12 +242,8 @@ if (!isset($jsonContent) || $jsonContent === 'null' || $jsonContent === '[]' || 
                             if (!res.ok) throw new Error('Fetch failed');
                             const categories = await res.json();
                             
-                            // Get saved selection
-                            // Content data is stored JSON string, parsed in JS variable
-                            const contentData = window.ZERO_INITIAL_CONTENT?.data || {}; 
-                            // Handle if data is string (double encoded) or object
-                            const parsedData = typeof contentData === 'string' ? JSON.parse(contentData) : contentData;
-                            const savedCats = parsedData.categories || [];
+                            // Get saved selection directly from PHP
+                            const savedCats = <?php echo json_encode($data['categories'] ?? []); ?>;
                             
                             if (categories.length === 0) {
                                 list.innerHTML = '<div class="text-xs text-gray-500 p-2">No categories found.</div>';
@@ -291,14 +319,14 @@ if (!isset($jsonContent) || $jsonContent === 'null' || $jsonContent === '[]' || 
     // Ensure zero_editor_content is initialized for save handler
     window.zero_editor_content = window.ZERO_INITIAL_CONTENT;
     
-    const postId = "<?= htmlspecialchars($postId ?? '') ?>";
+    let postId = "<?= htmlspecialchars($postId ?? '') ?>";
     const baseUrl = "<?= $base_url ?>";
     // Pre-populate featured image URL from PHP (if editing existing post)
     let featuredImageUrl = "<?= htmlspecialchars($featuredImageUrl) ?>";
 </script>
 
 <!-- REACT BUNDLE -->
-<script src="<?= $base_url ?>/content/themes/admin-default/assets/js/editor.bundle.js"></script>
+<script type="module" src="<?= $base_url ?>/content/themes/admin-default/assets/js/editor.bundle.js"></script>
 
 <!-- SAVE & UI LOGIC -->
 <script>
@@ -323,37 +351,71 @@ if (titleInput && slugInput) {
     slugInput.addEventListener('input', () => slugInput.value = generateSlug(slugInput.value));
 }
 
+// Toggle Page Attributes based on Type
+const typeSelect = document.getElementById('post-type');
+const pageAttrSection = document.getElementById('page-attributes-section');
+
+function togglePageAttributes() {
+    if (!typeSelect || !pageAttrSection) return;
+    if (typeSelect.value === 'page') {
+        pageAttrSection.classList.remove('hidden');
+    } else {
+        pageAttrSection.classList.add('hidden');
+    }
+}
+
+if (typeSelect) {
+    typeSelect.addEventListener('change', togglePageAttributes);
+    // Initial check
+    togglePageAttributes();
+}
+
 // Save Handler
-document.getElementById('save-btn').addEventListener('click', async () => {
-    const btn = document.getElementById('save-btn');
-    const originalText = btn.innerText;
+const saveBtn = document.getElementById('save-btn');
+if (saveBtn) {
+    saveBtn.addEventListener('click', async () => {
+        const btn = saveBtn; // safe reference
+        const originalText = btn.innerText;
+        
+        // Featured Image
+        const featImgEl = document.getElementById('featured-img');
+        const featuredImage = featImgEl ? featImgEl.src : '';
+        
+        // Excerpt
+        const excerptEl = document.querySelector('textarea');
+        const excerpt = excerptEl ? excerptEl.value : '';
+        
+        // Categories
+        const checkedCats = document.querySelectorAll('input[name="categories[]"]:checked');
+        const categories = Array.from(checkedCats).map(cb => cb.value);
     
-    // Featured Image and Excerpt
-    const featuredImage = document.getElementById('featured-img')?.src || '';
-    const excerpt = document.querySelector('textarea')?.value || '';
-    const categories = Array.from(document.querySelectorAll('input[name="categories[]"]:checked')).map(cb => cb.value);
-
-    btn.innerText = 'Saving...';
-    btn.disabled = true;
-
-    // 1. Collect Data
-    // Note: If using BlockNote, use editor.document. If Tiptap, use window.zero_editor_content
-    const contentData = window.zero_editor_content || []; 
+        btn.innerText = 'Saving...';
+        btn.disabled = true;
     
-    const payload = { 
-        id: postId, // From global variable
-        title: document.getElementById('post-title').value || 'Untitled', 
-        slug: document.getElementById('post-slug').value, 
-        status: document.getElementById('post-status').value, // Assuming existing ID
-        type: document.getElementById('post-type').value,
-        content: JSON.stringify(contentData),
-        // Extra data fields
-        data: {
-            featured_image: featuredImageUrl || featuredImage, // Use global var or fallback to DOM
-            excerpt: excerpt,
-            categories: categories
-        }
-    };
+        // 1. Collect Data
+        const contentData = window.zero_editor_content || []; 
+        
+        // Elements
+        const titleEl = document.getElementById('post-title');
+        const slugEl = document.getElementById('post-slug');
+        const statusEl = document.getElementById('post-status');
+        const typeEl = document.getElementById('post-type');
+        const templateEl = document.getElementById('page-template');
+        
+        const payload = { 
+            id: postId,
+            title: titleEl ? titleEl.value : 'Untitled', 
+            slug: slugEl ? slugEl.value : '', 
+            status: statusEl ? statusEl.value : 'draft',
+            type: typeEl ? typeEl.value : 'post',
+            content: JSON.stringify(contentData),
+            data: {
+                featured_image: featuredImageUrl || featuredImage,
+                excerpt: excerpt,
+                categories: categories,
+                template: templateEl ? templateEl.value : 'default'
+            }
+        };
 
     try {
         // 2. Send to Backend
@@ -393,6 +455,7 @@ document.getElementById('save-btn').addEventListener('click', async () => {
         btn.disabled = false;
     }
 });
+}
 
 // Featured Image Upload Handler
 const featUpload = document.getElementById('feat-upload');

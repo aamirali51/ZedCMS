@@ -2,6 +2,7 @@ import "@blocknote/core/fonts/inter.css";
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
+import { MantineProvider } from "@mantine/core";
 import { useState, useEffect, useCallback } from "react";
 
 export const BlockNoteEditor = ({ initialContent, initialTitle = "" }) => {
@@ -67,31 +68,33 @@ export const BlockNoteEditor = ({ initialContent, initialTitle = "" }) => {
 
     // 6. Render WordPress-style layout
     return (
-        <div className="wordpress-editor w-full min-h-screen bg-white">
-            {/* Centered Content Container */}
-            <div className="max-w-[650px] mx-auto pt-16 px-6">
-                {/* Large Title Input - WordPress Style */}
-                <input
-                    type="text"
-                    value={title}
-                    onChange={handleTitleChange}
-                    placeholder="Add title"
-                    className="w-full text-4xl font-serif font-normal text-gray-900 placeholder-gray-400 border-0 outline-none focus:outline-none focus:ring-0 mb-4 bg-transparent"
-                    style={{
-                        fontFamily: "'Lora', Georgia, serif",
-                        lineHeight: 1.2
-                    }}
-                />
-
-                {/* BlockNote Editor */}
-                <div className="blocknote-container -ml-12">
-                    <BlockNoteView
-                        editor={editor}
-                        onChange={onChange}
-                        theme="light"
+        <MantineProvider>
+            <div className="wordpress-editor w-full min-h-screen bg-white">
+                {/* Centered Content Container */}
+                <div className="max-w-[650px] mx-auto pt-16 px-6">
+                    {/* Large Title Input - WordPress Style */}
+                    <input
+                        type="text"
+                        value={title}
+                        onChange={handleTitleChange}
+                        placeholder="Add title"
+                        className="w-full text-4xl font-serif font-normal text-gray-900 placeholder-gray-400 border-0 outline-none focus:outline-none focus:ring-0 mb-4 bg-transparent"
+                        style={{
+                            fontFamily: "'Lora', Georgia, serif",
+                            lineHeight: 1.2
+                        }}
                     />
+
+                    {/* BlockNote Editor */}
+                    <div className="blocknote-container -ml-12">
+                        <BlockNoteView
+                            editor={editor}
+                            onChange={onChange}
+                            theme="light"
+                        />
+                    </div>
                 </div>
             </div>
-        </div>
+        </MantineProvider>
     );
 };

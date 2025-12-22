@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Frontend Addon - Public Content Viewer
+ * Frontend Addon - Public Content Viewer & Theme API
  * 
  * This addon handles public-facing routes for viewing content.
  * It matches slugs from the database and renders BlockNote JSON as HTML.
@@ -11,12 +11,533 @@ declare(strict_types=1);
  * Routes:
  * - /{slug} -> View published content by slug
  * - /preview/{id} -> Preview content by ID (requires auth)
+ * 
+ * Theme API:
+ * - Custom Post Types (CPT) registration
+ * - Theme functions.php auto-loading
+ * - Theme-driven hooks (zed_before_content, zed_after_content)
+ * - Theme Options API (zed_add_theme_setting)
  */
 
 use Core\Event;
 use Core\Router;
 use Core\Auth;
 use Core\Database;
+
+// =============================================================================
+// CUSTOM POST TYPE (CPT) ENGINE
+// =============================================================================
+
+/**
+ * Global registry for custom post types
+ * Stores: ['type_slug' => ['label' => '...', 'icon' => '...', 'supports' => [...]]]
+ */
+global $ZED_POST_TYPES;
+$ZED_POST_TYPES = [
+    // Built-in types (always available)
+    'page' => [
+        'label' => 'Pages',
+        'singular' => 'Page',
+        'icon' => 'description',
+        'supports' => ['title', 'editor', 'featured_image', 'excerpt'],
+        'public' => true,
+        'show_in_menu' => true,
+        'menu_position' => 10,
+        'builtin' => true,
+    ],
+    'post' => [
+        'label' => 'Posts',
+        'singular' => 'Post',
+        'icon' => 'article',
+        'supports' => ['title', 'editor', 'featured_image', 'excerpt', 'categories'],
+        'public' => true,
+        'show_in_menu' => true,
+        'menu_position' => 20,
+        'builtin' => true,
+    ],
+];
+
+/**
+ * Register a Custom Post Type
+ * 
+ * Usage in theme's functions.php:
+ *   zed_register_post_type('product', 'Products', 'inventory_2');
+ *   zed_register_post_type('event', [
+ *       'label' => 'Events',
+ *       'singular' => 'Event',
+ *       'icon' => 'event',
+ *       'supports' => ['title', 'editor', 'featured_image'],
+ *       'menu_position' => 30,
+ *   ]);
+ * 
+ * @param string $type Unique type slug (lowercase, no spaces)
+ * @param string|array $labelOrArgs Display label string OR full configuration array
+ * @param string $icon Material icon name (optional if using array)
+ * @return bool Success
+ */
+function zed_register_post_type(string $type, string|array $labelOrArgs, string $icon = 'folder'): bool
+{
+    global $ZED_POST_TYPES;
+    
+    // Sanitize type slug
+    $type = strtolower(preg_replace('/[^a-z0-9_]/', '', $type));
+    
+    if (empty($type) || $type === 'page' || $type === 'post') {
+        return false; // Can't override built-ins
+    }
+    
+    // Parse arguments
+    if (is_string($labelOrArgs)) {
+        $args = [
+            'label' => $labelOrArgs,
+            'singular' => rtrim($labelOrArgs, 's'),
+            'icon' => $icon,
+        ];
+    } else {
+        $args = $labelOrArgs;
+    }
+    
+    // Merge with defaults
+    $defaults = [
+        'label' => ucfirst($type) . 's',
+        'singular' => ucfirst($type),
+        'icon' => 'folder',
+        'supports' => ['title', 'editor'],
+        'public' => true,
+        'show_in_menu' => true,
+        'menu_position' => 50,
+        'builtin' => false,
+    ];
+    
+    $ZED_POST_TYPES[$type] = array_merge($defaults, $args);
+    
+    return true;
+}
+
+/**
+ * Get all registered post types
+ * 
+ * @param bool $includeBuiltin Include page/post types
+ * @return array Post types array
+ */
+function zed_get_post_types(bool $includeBuiltin = true): array
+{
+    global $ZED_POST_TYPES;
+    
+    if ($includeBuiltin) {
+        return $ZED_POST_TYPES;
+    }
+    
+    return array_filter($ZED_POST_TYPES, fn($pt) => !($pt['builtin'] ?? false));
+}
+
+/**
+ * Get a single post type's configuration
+ * 
+ * @param string $type Type slug
+ * @return array|null Configuration or null if not found
+ */
+function zed_get_post_type(string $type): ?array
+{
+    global $ZED_POST_TYPES;
+    return $ZED_POST_TYPES[$type] ?? null;
+}
+
+// =============================================================================
+// THEME OPTIONS API
+// =============================================================================
+
+/**
+ * Global registry for theme settings
+ * Stores: ['setting_id' => ['label' => '...', 'type' => '...', 'default' => '...']]
+ */
+global $ZED_THEME_SETTINGS;
+$ZED_THEME_SETTINGS = [];
+
+/**
+ * Register a theme setting field
+ * 
+ * Usage in theme's functions.php:
+ *   zed_add_theme_setting('accent_color', 'Accent Color', 'color', '#4f46e5');
+ *   zed_add_theme_setting('show_author', 'Show Author Bio', 'checkbox', true);
+ * 
+ * @param string $id Setting ID (will be prefixed with theme name)
+ * @param string $label Display label
+ * @param string $type Field type: text, textarea, color, checkbox, select
+ * @param mixed $default Default value
+ * @param array $options For 'select' type: ['value' => 'Label', ...]
+ * @return bool Success
+ */
+function zed_add_theme_setting(
+    string $id, 
+    string $label, 
+    string $type = 'text', 
+    mixed $default = '', 
+    array $options = []
+): bool {
+    global $ZED_THEME_SETTINGS;
+    
+    $ZED_THEME_SETTINGS[$id] = [
+        'id' => $id,
+        'label' => $label,
+        'type' => $type,
+        'default' => $default,
+        'options' => $options,
+    ];
+    
+    return true;
+}
+
+/**
+ * Get all registered theme settings
+ * 
+ * @return array Settings array
+ */
+function zed_get_theme_settings(): array
+{
+    global $ZED_THEME_SETTINGS;
+    return $ZED_THEME_SETTINGS;
+}
+
+/**
+ * Get a theme setting value from database
+ * Stored with prefix: theme_{active_theme}_{setting_id}
+ * 
+ * @param string $id Setting ID 
+ * @param mixed $default Fallback value
+ * @return mixed Setting value
+ */
+function zed_theme_option(string $id, mixed $default = ''): mixed
+{
+    global $ZED_THEME_SETTINGS;
+    
+    // Get active theme
+    $activeTheme = zed_get_option('active_theme', 'starter-theme');
+    $optionName = "theme_{$activeTheme}_{$id}";
+    
+    // Get from database
+    $value = zed_get_option($optionName, null);
+    
+    if ($value !== null) {
+        return $value;
+    }
+    
+    // Fall back to registered default
+    if (isset($ZED_THEME_SETTINGS[$id])) {
+        return $ZED_THEME_SETTINGS[$id]['default'];
+    }
+    
+    return $default;
+}
+
+/**
+ * Save a theme setting value
+ * 
+ * @param string $id Setting ID
+ * @param mixed $value Value to save
+ * @return bool Success
+ */
+function zed_set_theme_option(string $id, mixed $value): bool
+{
+    $activeTheme = zed_get_option('active_theme', 'starter-theme');
+    $optionName = "theme_{$activeTheme}_{$id}";
+    
+    try {
+        $db = Database::getInstance();
+        
+        // Check if exists
+        $exists = $db->queryValue(
+            "SELECT COUNT(*) FROM zed_options WHERE option_name = :name",
+            ['name' => $optionName]
+        );
+        
+        if ($exists > 0) {
+            $db->query(
+                "UPDATE zed_options SET option_value = :value WHERE option_name = :name",
+                ['name' => $optionName, 'value' => is_bool($value) ? ($value ? '1' : '0') : (string)$value]
+            );
+        } else {
+            $db->query(
+                "INSERT INTO zed_options (option_name, option_value, autoload) VALUES (:name, :value, 1)",
+                ['name' => $optionName, 'value' => is_bool($value) ? ($value ? '1' : '0') : (string)$value]
+            );
+        }
+        
+        return true;
+    } catch (Exception $e) {
+        return false;
+    }
+}
+
+// =============================================================================
+// THEME FUNCTIONS.PHP AUTO-LOADING
+// =============================================================================
+
+/**
+ * Global registry for theme metadata (required addons, etc.)
+ * Stores: ['theme_slug' => ['required_addons' => [...], 'theme_uri' => '...']]
+ */
+global $ZED_THEME_REGISTRY;
+$ZED_THEME_REGISTRY = [];
+
+/**
+ * Register theme requirements (called from theme's functions.php)
+ * 
+ * Usage:
+ *   zed_register_theme_requirements([
+ *       'required_addons' => ['seo_addon', 'cache_addon'],
+ *       'min_php_version' => '8.2',
+ *   ]);
+ * 
+ * @param array<string, mixed> $requirements Theme requirements
+ * @return void
+ */
+function zed_register_theme_requirements(array $requirements): void
+{
+    global $ZED_THEME_REGISTRY;
+    $activeTheme = zed_get_option('active_theme', 'starter-theme');
+    $ZED_THEME_REGISTRY[$activeTheme] = $requirements;
+}
+
+/**
+ * Get theme requirements for dependency checking
+ * 
+ * @param string|null $themeName Theme slug (null = active theme)
+ * @return array<string, mixed> Requirements array
+ */
+function zed_get_theme_requirements(?string $themeName = null): array
+{
+    global $ZED_THEME_REGISTRY;
+    $themeName = $themeName ?? zed_get_option('active_theme', 'starter-theme');
+    return $ZED_THEME_REGISTRY[$themeName] ?? [];
+}
+
+/**
+ * Check if theme has unmet addon dependencies
+ * Returns array of missing addon names
+ * 
+ * @return array<string> Missing addon filenames
+ */
+function zed_get_missing_theme_addons(): array
+{
+    $requirements = zed_get_theme_requirements();
+    $requiredAddons = $requirements['required_addons'] ?? [];
+    
+    if (empty($requiredAddons)) {
+        return [];
+    }
+    
+    // Get active addons from database
+    $activeAddonsJson = zed_get_option('active_addons', '[]');
+    $activeAddons = json_decode($activeAddonsJson, true) ?: [];
+    
+    // System addons are always active
+    $systemAddons = ['admin_addon.php', 'frontend_addon.php'];
+    $allActive = array_merge($systemAddons, $activeAddons);
+    
+    // Check which required addons are missing
+    $missing = [];
+    foreach ($requiredAddons as $addon) {
+        // Normalize addon name (add .php if missing)
+        $addonFile = str_ends_with($addon, '.php') ? $addon : $addon . '.php';
+        
+        if (!in_array($addonFile, $allActive, true)) {
+            $missing[] = $addonFile;
+        }
+    }
+    
+    return $missing;
+}
+
+// =============================================================================
+// ASSET INJECTION HELPER
+// =============================================================================
+
+/**
+ * Global registry for enqueued theme assets
+ * @var array<string, array{type: string, url: string, deps: array, ver: string}>
+ */
+global $ZED_ENQUEUED_ASSETS;
+$ZED_ENQUEUED_ASSETS = ['css' => [], 'js' => []];
+
+/**
+ * Enqueue a theme asset (CSS or JS file)
+ * 
+ * Automatically resolves paths to active theme's assets/ folder.
+ * Supports both development (Vite dev server) and production modes.
+ *
+ * Usage in theme's functions.php:
+ *   zed_enqueue_theme_asset('css/custom.css');
+ *   zed_enqueue_theme_asset('js/theme.js', ['jquery']);
+ *
+ * @param string $file Relative path within theme's assets folder
+ * @param array<string> $deps Dependencies (for JS)
+ * @param string $version Version string for cache busting
+ * @return void
+ */
+function zed_enqueue_theme_asset(string $file, array $deps = [], string $version = '1.0.0'): void
+{
+    global $ZED_ENQUEUED_ASSETS;
+    
+    $activeTheme = zed_get_option('active_theme', 'starter-theme');
+    $baseUrl = Router::getBasePath();
+    
+    // Determine file type
+    $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+    $type = ($extension === 'css') ? 'css' : 'js';
+    
+    // Build URL to theme asset
+    $url = "{$baseUrl}/content/themes/{$activeTheme}/assets/{$file}?v={$version}";
+    
+    // Check for Vite dev mode
+    $viteManifest = dirname(__DIR__) . "/themes/{$activeTheme}/assets/dist/.vite/manifest.json";
+    if (file_exists($viteManifest)) {
+        // Production: Use manifest for hashed filenames
+        $manifest = json_decode(file_get_contents($viteManifest), true);
+        if (isset($manifest[$file])) {
+            $url = "{$baseUrl}/content/themes/{$activeTheme}/assets/dist/{$manifest[$file]['file']}";
+        }
+    }
+    
+    // Add to queue
+    $ZED_ENQUEUED_ASSETS[$type][$file] = [
+        'type' => $type,
+        'url' => $url,
+        'deps' => $deps,
+        'ver' => $version,
+    ];
+}
+
+/**
+ * Output enqueued CSS assets (call in theme's <head>)
+ * 
+ * @return string HTML link tags
+ */
+function zed_render_theme_styles(): string
+{
+    global $ZED_ENQUEUED_ASSETS;
+    
+    $html = '';
+    foreach ($ZED_ENQUEUED_ASSETS['css'] as $asset) {
+        $url = htmlspecialchars($asset['url']);
+        $html .= "<link rel=\"stylesheet\" href=\"{$url}\">\n";
+    }
+    
+    return $html;
+}
+
+/**
+ * Output enqueued JS assets (call before </body>)
+ * 
+ * @return string HTML script tags
+ */
+function zed_render_theme_scripts(): string
+{
+    global $ZED_ENQUEUED_ASSETS;
+    
+    $html = '';
+    foreach ($ZED_ENQUEUED_ASSETS['js'] as $asset) {
+        $url = htmlspecialchars($asset['url']);
+        $html .= "<script src=\"{$url}\"></script>\n";
+    }
+    
+    return $html;
+}
+
+// =============================================================================
+// DATA-DRIVEN TEMPLATES
+// =============================================================================
+
+/**
+ * Global template data that gets injected into all templates
+ * @var array<string, mixed>
+ */
+global $ZED_TEMPLATE_DATA;
+$ZED_TEMPLATE_DATA = [];
+
+/**
+ * Add data to be available in templates
+ * 
+ * Usage:
+ *   zed_add_template_data('author_name', 'John Doe');
+ *   zed_add_template_data(['site_stats' => [...], 'user_prefs' => [...]]);
+ *
+ * @param string|array<string, mixed> $keyOrData Key name or associative array
+ * @param mixed $value Value (if $keyOrData is string)
+ * @return void
+ */
+function zed_add_template_data(string|array $keyOrData, mixed $value = null): void
+{
+    global $ZED_TEMPLATE_DATA;
+    
+    if (is_array($keyOrData)) {
+        $ZED_TEMPLATE_DATA = array_merge($ZED_TEMPLATE_DATA, $keyOrData);
+    } else {
+        $ZED_TEMPLATE_DATA[$keyOrData] = $value;
+    }
+}
+
+/**
+ * Get all template data (filtered)
+ * Applies the zed_template_data filter for dynamic injection
+ *
+ * @param array<string, mixed> $contextData Additional context-specific data
+ * @return array<string, mixed> Merged template data
+ */
+function zed_get_template_data(array $contextData = []): array
+{
+    global $ZED_TEMPLATE_DATA;
+    
+    // Merge global and context data
+    $data = array_merge($ZED_TEMPLATE_DATA, $contextData);
+    
+    // Apply filter for dynamic injection
+    return Event::filter('zed_template_data', $data);
+}
+
+/**
+ * Extract template data into local scope (call at top of template)
+ * 
+ * Usage in template:
+ *   <?php zed_extract_template_data(); ?>
+ *   <h1><?= $page_title ?></h1>
+ *
+ * @param array<string, mixed> $contextData Additional data
+ * @return void
+ */
+function zed_extract_template_data(array $contextData = []): void
+{
+    $data = zed_get_template_data($contextData);
+    extract($data, EXTR_SKIP);
+}
+
+/**
+ * Load active theme's functions.php during app_ready
+ * This allows themes to register hooks, post types, and settings
+ */
+Event::on('app_ready', function(): void {
+    // Get active theme from database
+    $activeTheme = zed_get_option('active_theme', 'aurora');
+    
+    // Build path to theme's directory
+    $themesDir = dirname(__DIR__) . '/themes';
+    $themePath = $themesDir . '/' . $activeTheme;
+    $functionsPath = $themePath . '/functions.php';
+    
+    // Define constants for theme parts system
+    if (!defined('ZED_ACTIVE_THEME')) {
+        define('ZED_ACTIVE_THEME', $activeTheme);
+    }
+    if (!defined('ZED_ACTIVE_THEME_PATH')) {
+        define('ZED_ACTIVE_THEME_PATH', $themePath);
+    }
+    
+    // Load if exists
+    if (file_exists($functionsPath)) {
+        require_once $functionsPath;
+    }
+}, 5); // Priority 5 = runs early, before route dispatch
+
 
 /**
  * Normalize a block to ensure it has all required keys with default values
@@ -635,6 +1156,44 @@ function zed_count_published_posts(): int
 }
 
 /**
+ * Resolve template using WordPress-style Template Hierarchy
+ * 
+ * For 'archive' prefix with 'portfolio' type:
+ *   1. archive-portfolio.php
+ *   2. archive.php
+ *   3. index.php
+ * 
+ * For 'single' prefix with 'portfolio' type:
+ *   1. single-portfolio.php
+ *   2. single.php
+ *   3. index.php
+ * 
+ * @param string $themePath Path to active theme directory
+ * @param string $prefix Template prefix (archive, single, page)
+ * @param string $type Post type slug
+ * @return string Full path to selected template
+ */
+function zed_resolve_template_hierarchy(string $themePath, string $prefix, string $type): string
+{
+    // Template hierarchy (most specific to least specific)
+    $hierarchy = [
+        "{$prefix}-{$type}.php",  // e.g., archive-portfolio.php
+        "{$prefix}.php",          // e.g., archive.php
+        'index.php'               // Ultimate fallback
+    ];
+    
+    foreach ($hierarchy as $template) {
+        $path = $themePath . '/' . $template;
+        if (file_exists($path)) {
+            return $path;
+        }
+    }
+    
+    // If nothing found, return index.php path (even if it doesn't exist)
+    return $themePath . '/index.php';
+}
+
+/**
  * Get a single page by ID
  */
 function zed_get_page_by_id(int $id): ?array
@@ -848,18 +1407,95 @@ Event::on('route_request', function (array $request): void {
     $uri = $request['uri'];
     
     // =========================================================================
+    // API: Contact Form Submission
+    // =========================================================================
+    if ($uri === '/api/submit-contact' && $request['method'] === 'POST') {
+        header('Content-Type: application/json');
+        
+        $name = trim($_POST['name'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $subject = trim($_POST['subject'] ?? 'New Message');
+        $message = trim($_POST['message'] ?? '');
+        
+        if (empty($name) || empty($email) || empty($message)) {
+            echo json_encode(['success' => false, 'error' => 'All fields are required.']);
+            Router::setHandled('');
+            return;
+        }
+        
+        try {
+            $db = Database::getInstance();
+            $title = "Message from " . $name;
+            $slug = 'msg-' . time() . '-' . mt_rand(1000, 9999);
+            
+            $data = [
+                'email' => $email,
+                'subject' => $subject,
+                'message' => $message,
+                'ip' => $_SERVER['REMOTE_ADDR'] ?? ''
+            ];
+            
+            $db->query(
+                "INSERT INTO zed_content (title, slug, type, data, author_id, created_at, updated_at) 
+                 VALUES (:title, :slug, 'contact_message', :data, 0, NOW(), NOW())",
+                [
+                    'title' => $title,
+                    'slug' => $slug,
+                    'data' => json_encode($data)
+                ]
+            );
+            
+            // Redirect back with success (since it's a standard FORM POST, not AJAX in the template)
+            // Wait, the template uses standard <form>. So we should Redirect.
+            // But user might want JSON if they used JS.
+            // The template I wrote uses standard POST.
+            
+            // Detect if AJAX
+            $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
+            
+            if ($isAjax || isset($_GET['json'])) {
+                echo json_encode(['success' => true, 'message' => 'Message sent successfully!']);
+            } else {
+                // Redirect to referrer with success param
+                $referrer = $_SERVER['HTTP_REFERER'] ?? '/';
+                if (str_contains($referrer, '?')) {
+                    $referrer .= '&success=1';
+                } else {
+                    $referrer .= '?success=1';
+                }
+                header("Location: " . $referrer);
+            }
+            
+        } catch (Exception $e) {
+             if ($isAjax || isset($_GET['json'])) {
+                echo json_encode(['success' => false, 'error' => 'Database error']);
+            } else {
+                die("Error saving message: " . $e->getMessage());
+            }
+        }
+        
+        Router::setHandled('');
+        return;
+    }
+    
+    // =========================================================================
     // THEME CONFIGURATION
     // =========================================================================
-    // Define the active theme. In the future, this will be loaded from:
-    // - Database setting (via Theme Manager UI)
-    // - Config file
-    // For now, we hardcode it for development.
     // =========================================================================
-    $theme = 'zero-one';
+    // ACTIVE THEME RESOLUTION
+    // Reads from database (set via Admin > Themes)
+    // =========================================================================
+    $theme = zed_get_option('active_theme', 'starter-theme');
     
-    // Define theme path and template paths
+    // Define theme path
     $themesDir = __DIR__ . '/../themes';
     $themePath = $themesDir . '/' . $theme;
+    
+    // Fallback: if theme directory doesn't exist, use starter-theme
+    if (!is_dir($themePath)) {
+        $theme = 'starter-theme';
+        $themePath = $themesDir . '/' . $theme;
+    }
     
     // Make theme name globally accessible for other addons
     if (!defined('ZED_ACTIVE_THEME')) {
@@ -958,36 +1594,146 @@ Event::on('route_request', function (array $request): void {
     }
     
     // =========================================================================
-    // BLOG LISTING HANDLER (Dynamic slug from settings)
+    // SMART ARCHIVE HANDLER
+    // Automatically handles archive pages for ANY registered post type
+    // Checks $ZED_POST_TYPES registry to detect CPT slugs
     // =========================================================================
-    // Only active when homepage is set to static page
-    if ($homepage_mode === 'static_page' && $slug === $blog_slug) {
+    
+    // Parse URL segments for context-aware routing
+    $segments = array_filter(explode('/', $slug));
+    $firstSegment = $segments[0] ?? '';
+    $secondSegment = $segments[1] ?? null;
+    
+    // Get all registered post types
+    $postTypes = zed_get_post_types(true);
+    
+    // Check if first segment matches a post type (or its plural slug)
+    $matchedType = null;
+    $matchedTypeConfig = null;
+    
+    foreach ($postTypes as $typeSlug => $typeConfig) {
+        // Match by type slug directly (e.g., /portfolio)
+        if ($firstSegment === $typeSlug) {
+            $matchedType = $typeSlug;
+            $matchedTypeConfig = $typeConfig;
+            break;
+        }
+        
+        // Also match by plural label slug (e.g., /portfolios → portfolio)
+        $pluralSlug = strtolower(str_replace(' ', '-', $typeConfig['label'] ?? ''));
+        if ($firstSegment === $pluralSlug) {
+            $matchedType = $typeSlug;
+            $matchedTypeConfig = $typeConfig;
+            break;
+        }
+    }
+    
+    // Special case: /blog always maps to 'post' type
+    if ($firstSegment === 'blog' || ($homepage_mode === 'static_page' && $firstSegment === $blog_slug)) {
+        $matchedType = 'post';
+        $matchedTypeConfig = $postTypes['post'] ?? ['label' => 'Posts', 'singular' => 'Post'];
+    }
+    
+    // If matched a CPT...
+    if ($matchedType !== null) {
         $base_url = Router::getBasePath();
+        
+        // ─────────────────────────────────────────────────────────────────────
+        // CASE 1: Nested slug like /portfolio/my-project → Single item
+        // ─────────────────────────────────────────────────────────────────────
+        if ($secondSegment !== null) {
+            try {
+                $db = Database::getInstance();
+                $post = $db->queryOne(
+                    "SELECT * FROM zed_content 
+                     WHERE slug = :slug 
+                       AND type = :type
+                       AND JSON_UNQUOTE(JSON_EXTRACT(data, '$.status')) = 'published'
+                     LIMIT 1",
+                    ['slug' => $secondSegment, 'type' => $matchedType]
+                );
+                
+                if ($post) {
+                    // Parse content
+                    $data = is_string($post['data']) ? json_decode($post['data'], true) : $post['data'];
+                    $blocks = $data['content'] ?? [];
+                    $htmlContent = render_blocks($blocks);
+                    
+                    // Template data
+                    $post_type = $matchedType;
+                    $post_type_label = $matchedTypeConfig['singular'] ?? ucfirst($matchedType);
+                    
+                    // Single Template Hierarchy: single-{type}.php → single.php → index.php
+                    $template = zed_resolve_template_hierarchy($themePath, 'single', $matchedType);
+                    
+                    ob_start();
+                    include $template;
+                    $html = ob_get_clean();
+                    
+                    Router::setHandled($html);
+                    return;
+                }
+            } catch (Exception $e) {
+                // Fall through
+            }
+            
+            // Not found - will 404
+            return;
+        }
+        
+        // ─────────────────────────────────────────────────────────────────────
+        // CASE 2: Archive listing like /portfolio → List all portfolio items
+        // ─────────────────────────────────────────────────────────────────────
         
         // Pagination
         $page_num = max(1, (int)($_GET['page'] ?? 1));
         $offset = ($page_num - 1) * $posts_per_page;
-        $posts = zed_get_latest_posts($posts_per_page, $offset);
-        $total_posts = zed_count_published_posts();
-        $total_pages = max(1, ceil($total_posts / $posts_per_page));
         
-        // Theme variables
-        $is_home = false;
-        $is_blog = true;
-        $blog_title = 'Blog';
-        
-        // Use index.php for blog listing
-        $blogTemplate = $themePath . '/index.php';
-        
-        if (file_exists($blogTemplate)) {
-            ob_start();
-            include $blogTemplate;
-            $html = ob_get_clean();
-            Router::setHandled($html);
-            return;
+        try {
+            $db = Database::getInstance();
+            
+            // Fetch items of this type
+            $posts = $db->query(
+                "SELECT * FROM zed_content 
+                 WHERE type = :type 
+                   AND JSON_UNQUOTE(JSON_EXTRACT(data, '$.status')) = 'published'
+                 ORDER BY created_at DESC
+                 LIMIT :limit OFFSET :offset",
+                ['type' => $matchedType, 'limit' => $posts_per_page, 'offset' => $offset]
+            );
+            
+            // Count total
+            $total_results = (int)$db->queryValue(
+                "SELECT COUNT(*) FROM zed_content 
+                 WHERE type = :type 
+                   AND JSON_UNQUOTE(JSON_EXTRACT(data, '$.status')) = 'published'",
+                ['type' => $matchedType]
+            );
+            
+            $total_pages = max(1, ceil($total_results / $posts_per_page));
+            
+        } catch (Exception $e) {
+            $posts = [];
+            $total_results = 0;
+            $total_pages = 1;
         }
         
-        // Fallback: return simple listing
+        // Template data injection
+        $post_type = $matchedType;
+        $post_type_label = $matchedTypeConfig['label'] ?? ucfirst($matchedType) . 's';
+        $post_type_singular = $matchedTypeConfig['singular'] ?? ucfirst($matchedType);
+        $archive_title = $post_type_label;
+        $is_archive = true;
+        $is_blog = ($matchedType === 'post');
+        
+        // Archive Template Hierarchy: archive-{type}.php → archive.php → index.php
+        $template = zed_resolve_template_hierarchy($themePath, 'archive', $matchedType);
+        
+        ob_start();
+        include $template;
+        $html = ob_get_clean();
+        
+        Router::setHandled($html);
         return;
     }
     
@@ -1060,15 +1806,48 @@ Event::on('route_request', function (array $request): void {
             $base_url = Router::getBasePath();
             
             // ─────────────────────────────────────────────────────────────────
-            // STEP 2: Bridge to Theme Template
+            // THEME HOOKS: Before/After Content
+            // Allow themes to inject dynamic elements (author bios, related posts)
             // ─────────────────────────────────────────────────────────────────
-            $singleTemplate = $themePath . '/single.php';
+            ob_start();
+            Event::trigger('zed_before_content', $post, $data);
+            $beforeContent = ob_get_clean();
             
-            if (file_exists($singleTemplate)) {
-                // Theme template found - include it
-                // Variables available to template: $post, $htmlContent, $base_url
+            ob_start();
+            Event::trigger('zed_after_content', $post, $data);
+            $afterContent = ob_get_clean();
+            
+            // ─────────────────────────────────────────────────────────────────
+            // STEP 2: Resolve Template
+            // ─────────────────────────────────────────────────────────────────
+            // Check for custom template
+            $templateName = $data['template'] ?? 'default';
+            $templateFile = null;
+            
+            if ($templateName !== 'default') {
+                // First: Let addons provide the template (Template Library, etc.)
+                // The filter receives: template path (or null), template name, post data
+                $addonTemplate = Event::filter('zed_resolve_template', null, $templateName, $post);
+                
+                if ($addonTemplate && file_exists($addonTemplate)) {
+                    $templateFile = $addonTemplate;
+                }
+                // Second: Check theme's templates folder
+                elseif (file_exists($themePath . '/templates/' . $templateName . '.php')) {
+                    $templateFile = $themePath . '/templates/' . $templateName . '.php';
+                }
+            }
+            
+            // Fallback to single.php if no custom template found
+            if (!$templateFile) {
+                $templateFile = $themePath . '/single.php';
+            }
+            
+            if (file_exists($templateFile)) {
+                // Template found - include it
+                // Variables available: $post, $htmlContent, $base_url, $beforeContent, $afterContent, $data
                 ob_start();
-                include $singleTemplate;
+                include $templateFile;
                 $html = ob_get_clean();
             } else {
                 // ─────────────────────────────────────────────────────────────
@@ -1175,3 +1954,162 @@ function zed_page_title(string $pageTitle = ''): string
     
     return $pageTitle . ' — ' . $siteName;
 }
+
+// =============================================================================
+// THEME PARTS SYSTEM
+// =============================================================================
+
+/**
+ * Get the path to a theme part file
+ * 
+ * Looks for files in:
+ * 1. Active theme's /parts/ directory
+ * 2. Falls back to default parts if not found
+ * 
+ * @param string $part Part name (e.g., 'head', 'header', 'footer', 'sidebar')
+ * @return string|null Full path to part file or null if not found
+ */
+function zed_get_theme_part(string $part): ?string
+{
+    $themePath = ZED_ACTIVE_THEME_PATH ?? '';
+    
+    if (empty($themePath)) {
+        return null;
+    }
+    
+    // Try parts directory first (preferred)
+    $partFile = $themePath . '/parts/' . $part . '.php';
+    if (file_exists($partFile)) {
+        return $partFile;
+    }
+    
+    // Try root directory for backwards compatibility
+    $rootFile = $themePath . '/' . $part . '.php';
+    if (file_exists($rootFile)) {
+        return $rootFile;
+    }
+    
+    return null;
+}
+
+/**
+ * Include a theme part file
+ * 
+ * Safely includes a theme part with optional variable extraction.
+ * This is the recommended way to include theme partials in templates.
+ * 
+ * @param string $part Part name (e.g., 'head', 'header', 'footer')
+ * @param array $vars Optional variables to make available in the part
+ * @return bool True if part was included, false if not found
+ * 
+ * @example
+ *   // Include header with custom nav style
+ *   zed_include_theme_part('header', ['header_style' => 'transparent']);
+ *   
+ *   // Include footer
+ *   zed_include_theme_part('footer', ['footer_style' => 'dark']);
+ */
+function zed_include_theme_part(string $part, array $vars = []): bool
+{
+    $partFile = zed_get_theme_part($part);
+    
+    if ($partFile === null) {
+        return false;
+    }
+    
+    // Extract variables to make them available in the part
+    if (!empty($vars)) {
+        extract($vars, EXTR_SKIP);
+    }
+    
+    // Make common variables available
+    $base_url = Router::getBasePath();
+    $site_name = zed_get_site_name();
+    
+    include $partFile;
+    return true;
+}
+
+/**
+ * Get the active theme's directory path
+ * 
+ * @return string Theme directory path
+ */
+function zed_get_theme_path(): string
+{
+    return ZED_ACTIVE_THEME_PATH ?? '';
+}
+
+/**
+ * Check if a theme part exists
+ * 
+ * @param string $part Part name
+ * @return bool True if part exists
+ */
+function zed_theme_part_exists(string $part): bool
+{
+    return zed_get_theme_part($part) !== null;
+}
+
+/**
+ * Get the Tailwind CSS CDN script tag
+ * 
+ * Returns a properly configured Tailwind CDN include with the theme's colors.
+ * Use this in templates to ensure consistent Tailwind styling.
+ * 
+ * @param array $extraColors Additional colors to add to config
+ * @return string HTML script tags for Tailwind
+ */
+function zed_tailwind_cdn(array $extraColors = []): string
+{
+    $brand = zed_theme_option('brand_color', '#6366f1');
+    $brandDark = zed_theme_option('brand_color_dark', '#4f46e5');
+    
+    $colors = array_merge([
+        'brand' => $brand,
+        'brand-dark' => $brandDark,
+    ], $extraColors);
+    
+    $colorsJson = json_encode($colors);
+    
+    return <<<HTML
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {$colorsJson},
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                },
+            },
+        }
+    </script>
+HTML;
+}
+
+/**
+ * Get Google Fonts link tags for the theme
+ * 
+ * @param array $fonts Font families to load (default: Inter and Material Symbols)
+ * @return string HTML link tags
+ */
+function zed_google_fonts(array $fonts = []): string
+{
+    if (empty($fonts)) {
+        $fonts = [
+            'Inter:wght@400;500;600;700;800',
+        ];
+    }
+    
+    $fontParam = implode('&family=', $fonts);
+    
+    return <<<HTML
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family={$fontParam}&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@400" rel="stylesheet">
+HTML;
+}
+

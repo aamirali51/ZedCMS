@@ -2,7 +2,11 @@
 /**
  * Addons Management - App Store Style Grid
  * 
- * Professional addon manager with toggle switches and upload
+ * Professional addon manager with toggle switches and upload.
+ * Supports both single-file addons and folder-based addons.
+ * 
+ * Single file: addons/my_addon.php
+ * Folder: addons/my_addon/addon.php
  */
 
 use Core\Router;
@@ -10,7 +14,28 @@ use Core\Database;
 
 $base_url = Router::getBasePath();
 $addons_dir = realpath(__DIR__ . '/../../../addons');
-$addon_files = glob($addons_dir . '/*.php') ?: [];
+
+// Discover all addons (single files + folders with addon.php)
+$addon_files = [];
+
+// 1. Single-file addons: addons/*.php
+foreach (glob($addons_dir . '/*.php') ?: [] as $file) {
+    $addon_files[] = [
+        'path' => $file,
+        'identifier' => basename($file),
+        'type' => 'file',
+    ];
+}
+
+// 2. Folder-based addons: addons/*/addon.php
+foreach (glob($addons_dir . '/*/addon.php') ?: [] as $file) {
+    $folderName = basename(dirname($file));
+    $addon_files[] = [
+        'path' => $file,
+        'identifier' => $folderName, // Use folder name as identifier
+        'type' => 'folder',
+    ];
+}
 
 // Get system addons list (defined in index.php)
 $system_addons = defined('ZERO_SYSTEM_ADDONS') ? ZERO_SYSTEM_ADDONS : ['admin_addon.php', 'frontend_addon.php'];
@@ -30,25 +55,33 @@ try {
 // If no active_addons option exists, all non-system addons are active by default
 if ($active_addons === null) {
     $active_addons = [];
-    foreach ($addon_files as $file) {
-        $name = basename($file);
-        if (!in_array($name, $system_addons, true)) {
-            $active_addons[] = $name;
+    foreach ($addon_files as $addon) {
+        $id = $addon['identifier'];
+        if (!in_array($id, $system_addons, true)) {
+            $active_addons[] = $id;
         }
     }
 }
 
 // Parse all addons
 $addons = [];
-foreach ($addon_files as $file) {
-    $basename = basename($file);
-    $isSystem = in_array($basename, $system_addons, true);
-    $isActive = $isSystem || in_array($basename, $active_addons, true);
+foreach ($addon_files as $addonInfo) {
+    $file = $addonInfo['path'];
+    $identifier = $addonInfo['identifier'];
+    $type = $addonInfo['type'];
+    
+    $isSystem = in_array($identifier, $system_addons, true);
+    $isActive = $isSystem || in_array($identifier, $active_addons, true);
+    
+    // Generate display name from identifier
+    $displayName = ucwords(str_replace(['_', '-', '.php'], [' ', ' ', ''], $identifier));
     
     // Default Metadata
     $meta = [
-        'filename' => $basename,
-        'name' => ucwords(str_replace(['_', '.php'], [' ', ''], $basename)),
+        'filename' => $identifier,
+        'path' => $file,
+        'type' => $type,
+        'name' => $displayName,
         'description' => 'No description available',
         'version' => '1.0.0',
         'author' => 'Unknown',
@@ -57,7 +90,7 @@ foreach ($addon_files as $file) {
         'is_active' => $isActive
     ];
     
-    // Parse Header
+    // Parse Header from addon file
     $content = file_get_contents($file, false, null, 0, 4096);
     if (preg_match('|/\*\*(.*?)\*/|s', $content, $matches)) {
         $header = $matches[1];
@@ -106,7 +139,32 @@ usort($addons, function($a, $b) {
         </div>
     </div>
 
-    <!-- Addon Grid -->
+    <?php
+    // Check for theme addon dependencies
+    $missing_addons = function_exists('zed_get_missing_theme_addons') ? zed_get_missing_theme_addons() : [];
+    if (!empty($missing_addons)):
+    ?>
+    <!-- Theme Dependency Warning -->
+    <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
+        <div class="p-2 bg-amber-100 rounded-lg text-amber-600">
+            <span class="material-symbols-outlined">warning</span>
+        </div>
+        <div class="flex-1">
+            <h3 class="font-semibold text-amber-900">Theme Requires Additional Addons</h3>
+            <p class="text-amber-700 text-sm mt-1">
+                Your active theme requires the following addons to be enabled:
+            </p>
+            <div class="flex flex-wrap gap-2 mt-2">
+                <?php foreach ($missing_addons as $addon): ?>
+                    <span class="px-2 py-1 bg-amber-200 text-amber-800 text-xs font-medium rounded">
+                        <?= htmlspecialchars($addon) ?>
+                    </span>
+                <?php endforeach; ?>
+            </div>
+            <p class="text-amber-600 text-xs mt-2">Enable these addons below to ensure full theme functionality.</p>
+        </div>
+    </div>
+    <?php endif; ?>
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <?php foreach ($addons as $addon): ?>
         <div class="addon-card bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow group"

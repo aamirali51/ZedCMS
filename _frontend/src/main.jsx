@@ -1,7 +1,8 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { BlockNoteEditor } from './components/blocknote-editor'
 import './index.css'
+import '@mantine/core/styles.css';
+import { BlockNoteEditor } from './components/blocknote-editor'
 
 const rootElement = document.getElementById('tiptap-editor')
 

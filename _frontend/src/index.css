@@ -44,3 +44,113 @@
   width: 14px;
   height: 14px;
 }
+
+/* ================================================
+   BlockNote Suggestion Menu (Slash Menu) Fixes
+   These override Tailwind's Preflight CSS resets
+   ================================================ */
+
+/* Main dropdown container */
+.bn-suggestion-menu,
+[data-bn-suggestion-menu],
+.mantine-Menu-dropdown,
+.mantine-Popover-dropdown {
+  background-color: white !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+  padding: 6px !important;
+  z-index: 9999 !important;
+  max-height: 400px !important;
+  overflow-y: auto !important;
+}
+
+/* Menu items */
+.bn-suggestion-menu-item,
+[data-bn-suggestion-menu-item],
+.mantine-Menu-item {
+  display: flex !important;
+  align-items: center !important;
+  padding: 8px 12px !important;
+  border-radius: 6px !important;
+  cursor: pointer !important;
+  transition: background-color 0.15s ease !important;
+  background-color: transparent !important;
+  gap: 10px !important;
+}
+
+.bn-suggestion-menu-item:hover,
+[data-bn-suggestion-menu-item]:hover,
+.mantine-Menu-item:hover,
+.bn-suggestion-menu-item[data-selected="true"],
+[data-bn-suggestion-menu-item][data-selected="true"] {
+  background-color: #f3f4f6 !important;
+}
+
+/* Group labels */
+.bn-group-label,
+.mantine-Menu-label {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  color: #6b7280 !important;
+  padding: 8px 12px 4px !important;
+  letter-spacing: 0.05em !important;
+}
+
+/* Item text */
+.bn-suggestion-menu-item-title,
+.mantine-Menu-itemLabel {
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  color: #1f2937 !important;
+}
+
+.bn-suggestion-menu-item-subtitle {
+  font-size: 12px !important;
+  color: #6b7280 !important;
+}
+
+/* Icons in menu */
+.bn-suggestion-menu-item-icon,
+.mantine-Menu-itemSection {
+  width: 20px !important;
+  height: 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #6b7280 !important;
+}
+
+/* Keyboard shortcuts */
+.mantine-Kbd,
+kbd {
+  font-size: 11px !important;
+  padding: 2px 6px !important;
+  background-color: #f3f4f6 !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 4px !important;
+  color: #6b7280 !important;
+}
+
+/* Scrollbar styling for the menu */
+.bn-suggestion-menu::-webkit-scrollbar,
+.mantine-Menu-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.bn-suggestion-menu::-webkit-scrollbar-track,
+.mantine-Menu-dropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.bn-suggestion-menu::-webkit-scrollbar-thumb,
+.mantine-Menu-dropdown::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.bn-suggestion-menu::-webkit-scrollbar-thumb:hover,
+.mantine-Menu-dropdown::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}

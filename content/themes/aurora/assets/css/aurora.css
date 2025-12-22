@@ -1,0 +1,147 @@
+/* Aurora Theme - Basic CSS (Tailwind handles most styling) */
+
+/* Brand color custom properties */
+:root {
+    --aurora-brand: #6366f1;
+    --aurora-brand-dark: #4f46e5;
+    --aurora-brand-light: rgba(99, 102, 241, 0.1);
+}
+
+/* Smooth scrolling */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Typography enhancements */
+.prose {
+    font-size: 1.125rem;
+    line-height: 1.8;
+}
+
+.prose h2,
+.prose h3,
+.prose h4 {
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+}
+
+.prose p+p {
+    margin-top: 1.5rem;
+}
+
+/* Code blocks */
+.prose pre {
+    background: #1e293b;
+    color: #e2e8f0;
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    overflow-x: auto;
+}
+
+.prose code {
+    background: #f1f5f9;
+    padding: 0.2em 0.4em;
+    border-radius: 0.25rem;
+    font-size: 0.9em;
+}
+
+.prose pre code {
+    background: transparent;
+    padding: 0;
+}
+
+/* Image styling */
+.prose img {
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Blockquote */
+.prose blockquote {
+    border-left: 4px solid var(--aurora-brand);
+    padding-left: 1.5rem;
+    font-style: italic;
+    color: #64748b;
+}
+
+/* Tables */
+.prose table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.prose th,
+.prose td {
+    border: 1px solid #e2e8f0;
+    padding: 0.75rem 1rem;
+    text-align: left;
+}
+
+.prose th {
+    background: #f8fafc;
+    font-weight: 600;
+}
+
+/* Lists */
+.prose ul,
+.prose ol {
+    padding-left: 1.5rem;
+}
+
+.prose li {
+    margin-bottom: 0.5rem;
+}
+
+/* Checklist items */
+.prose .check-list-item {
+    list-style: none;
+    margin-left: -1.5rem;
+}
+
+.prose .check-list-item::before {
+    content: "☐ ";
+}
+
+.prose .check-list-item.checked::before {
+    content: "☑ ";
+    color: var(--aurora-brand);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Focus states */
+a:focus,
+button:focus,
+input:focus {
+    outline: 2px solid var(--aurora-brand);
+    outline-offset: 2px;
+}
+
+/* Print styles */
+@media print {
+
+    header,
+    footer,
+    nav {
+        display: none;
+    }
+
+    .prose {
+        max-width: none;
+    }
+}

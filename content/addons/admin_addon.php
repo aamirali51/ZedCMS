@@ -346,6 +346,7 @@ function zed_get_admin_menu_items(): array
             'label' => 'Dashboard',
             'icon' => 'dashboard',
             'url' => $base . '/admin',
+            'position' => 10,
         ];
     }
     
@@ -356,7 +357,39 @@ function zed_get_admin_menu_items(): array
             'label' => 'Content',
             'icon' => 'article',
             'url' => $base . '/admin/content',
+            'position' => 20,
         ];
+        
+        // ─────────────────────────────────────────────────────────────────
+        // CUSTOM POST TYPES - Dynamic menu items from theme/addon registration
+        // ─────────────────────────────────────────────────────────────────
+        global $ZED_POST_TYPES;
+        if (!empty($ZED_POST_TYPES)) {
+            // Sort by menu_position
+            $sortedTypes = $ZED_POST_TYPES;
+            uasort($sortedTypes, fn($a, $b) => ($a['menu_position'] ?? 50) <=> ($b['menu_position'] ?? 50));
+            
+            $cptPosition = 21; // Start CPT items after Content (20)
+            foreach ($sortedTypes as $type => $config) {
+                // Skip built-in types (already have their own entries)
+                if ($config['builtin'] ?? false) {
+                    continue;
+                }
+                
+                // Only show if configured to show in menu
+                if (!($config['show_in_menu'] ?? true)) {
+                    continue;
+                }
+                
+                $items[] = [
+                    'id' => 'cpt_' . $type,
+                    'label' => $config['label'] ?? ucfirst($type) . 's',
+                    'icon' => $config['icon'] ?? 'folder',
+                    'url' => $base . '/admin/content?type=' . $type,
+                    'position' => $cptPosition++,
+                ];
+            }
+        }
     }
     
     // Categories - editors and above
@@ -366,6 +399,7 @@ function zed_get_admin_menu_items(): array
             'label' => 'Categories',
             'icon' => 'category',
             'url' => $base . '/admin/categories',
+            'position' => 40,
         ];
     }
     
@@ -376,6 +410,7 @@ function zed_get_admin_menu_items(): array
             'label' => 'Media Library',
             'icon' => 'perm_media',
             'url' => $base . '/admin/media',
+            'position' => 50,
         ];
     }
     
@@ -386,6 +421,7 @@ function zed_get_admin_menu_items(): array
             'label' => 'Menus',
             'icon' => 'menu',
             'url' => $base . '/admin/menus',
+            'position' => 60,
         ];
     }
     
@@ -396,6 +432,7 @@ function zed_get_admin_menu_items(): array
             'label' => 'Users',
             'icon' => 'group',
             'url' => $base . '/admin/users',
+            'position' => 70,
         ];
     }
     
@@ -406,6 +443,7 @@ function zed_get_admin_menu_items(): array
             'label' => 'Addons',
             'icon' => 'extension',
             'url' => $base . '/admin/addons',
+            'position' => 80,
         ];
     }
     
@@ -416,6 +454,7 @@ function zed_get_admin_menu_items(): array
             'label' => 'Themes',
             'icon' => 'palette',
             'url' => $base . '/admin/themes',
+            'position' => 85,
         ];
     }
     
@@ -426,6 +465,7 @@ function zed_get_admin_menu_items(): array
             'label' => 'Knowledge Base',
             'icon' => 'library_books',
             'url' => $base . '/admin/wiki',
+            'position' => 90,
         ];
     }
     
@@ -436,8 +476,21 @@ function zed_get_admin_menu_items(): array
             'label' => 'Settings',
             'icon' => 'settings',
             'url' => $base . '/admin/settings',
+            'position' => 100,
         ];
     }
+    
+    // ─────────────────────────────────────────────────────────────────────
+    // ADDON MENU ITEMS - Allow addons to register their own menu items
+    // ─────────────────────────────────────────────────────────────────────
+    $items = Event::filter('zed_admin_menu', $items);
+    
+    // Sort by position if provided (addons can specify 'position' key)
+    usort($items, function($a, $b) {
+        $posA = $a['position'] ?? 100;
+        $posB = $b['position'] ?? 100;
+        return $posA <=> $posB;
+    });
     
     return $items;
 }
@@ -1022,6 +1075,7 @@ Event::on('route_request', function (array $request): void {
         $perPage = 10;
         $search = trim($_GET['search'] ?? '');
         $status = $_GET['status'] ?? ''; // 'published', 'draft', or '' (all)
+        $type = $_GET['type'] ?? ''; // Filter by post type
         $msg = $_GET['msg'] ?? ''; // Flash message from delete, etc.
         
         // Build the query dynamically
@@ -1043,6 +1097,12 @@ Event::on('route_request', function (array $request): void {
                 $currentUserId = Auth::id();
                 $whereClauses[] = "author_id = :author_id";
                 $params['author_id'] = $currentUserId;
+            }
+            
+            // Type filter
+            if (!empty($type)) {
+                $whereClauses[] = "type = :type";
+                $params['type'] = $type;
             }
             
             // Search filter (title or slug)
@@ -1089,9 +1149,16 @@ Event::on('route_request', function (array $request): void {
         // Get current user
         $current_user = Auth::user();
         
+        // Get type label for display
+        $typeLabel = 'Content';
+        if (!empty($type)) {
+            $typeConfig = zed_get_post_type($type);
+            $typeLabel = $typeConfig['label'] ?? ucfirst($type) . 's';
+        }
+        
         // Layout configuration
-        $current_page = 'content';
-        $page_title = 'Content';
+        $current_page = !empty($type) ? 'cpt_' . $type : 'content'; // Highlights correct sidebar menu
+        $page_title = $typeLabel;
         $content_partial = $themePath . '/partials/content-list-content.php';
         
         ob_start();
@@ -1755,8 +1822,40 @@ Event::on('route_request', function (array $request): void {
             
             $savedCount = 0;
             
+            // Get active theme for theme options
+            $activeTheme = zed_get_option('active_theme', 'aurora');
+            
             foreach ($input as $key => $value) {
-                // Only save whitelisted keys
+                // Handle theme settings (prefixed with 'theme_')
+                if (str_starts_with($key, 'theme_')) {
+                    // Extract the setting ID (remove 'theme_' prefix)
+                    $settingId = substr($key, 6); // 'theme_' = 6 chars
+                    
+                    // Store with proper format: theme_{active_theme}_{setting_id}
+                    $optionName = "theme_{$activeTheme}_{$settingId}";
+                    
+                    // Sanitize value
+                    $value = is_string($value) ? trim($value) : $value;
+                    if (is_bool($value)) {
+                        $value = $value ? '1' : '0';
+                    }
+                    
+                    // Upsert theme option
+                    $stmt = $pdo->prepare("
+                        INSERT INTO zed_options (option_name, option_value, autoload) 
+                        VALUES (:key, :value, 1)
+                        ON DUPLICATE KEY UPDATE option_value = :value2
+                    ");
+                    $stmt->execute([
+                        'key' => $optionName,
+                        'value' => $value,
+                        'value2' => $value
+                    ]);
+                    $savedCount++;
+                    continue;
+                }
+                
+                // Only save whitelisted keys for non-theme settings
                 if (!in_array($key, $allowedKeys)) {
                     continue;
                 }
@@ -2211,6 +2310,9 @@ Event::on('route_request', function (array $request): void {
             $data = [
                 'content' => is_string($content) ? json_decode($content, true) : $content,
                 'status' => $status,
+                'featured_image' => $input['data']['featured_image'] ?? '',
+                'categories' => $input['data']['categories'] ?? [],
+                'template' => $input['data']['template'] ?? 'default',
                 'excerpt' => $input['excerpt'] ?? ($input['data']['excerpt'] ?? '')
             ];
             
@@ -2450,22 +2552,37 @@ Event::on('route_request', function (array $request): void {
         
         try {
             $input = json_decode(file_get_contents('php://input'), true);
-            $filename = basename($input['filename'] ?? '');
+            $identifier = $input['filename'] ?? '';
             
-            if (empty($filename)) {
-                throw new Exception('No addon filename provided');
+            // Security: prevent directory traversal
+            $identifier = basename($identifier);
+            
+            if (empty($identifier)) {
+                throw new Exception('No addon identifier provided');
             }
             
             // Prevent disabling system addons
             $systemAddons = defined('ZERO_SYSTEM_ADDONS') ? ZERO_SYSTEM_ADDONS : ['admin_addon.php', 'frontend_addon.php'];
-            if (in_array($filename, $systemAddons, true)) {
+            if (in_array($identifier, $systemAddons, true)) {
                 throw new Exception('System addons cannot be disabled');
             }
             
-            // Verify addon file exists
+            // Find the addon file (supports both file and folder addons)
             $addonsDir = dirname(__DIR__) . '/addons';
-            if (!file_exists($addonsDir . '/' . $filename)) {
-                throw new Exception('Addon file not found');
+            $addonFile = null;
+            $addonType = null;
+            
+            // Check for single-file addon: addons/{identifier}
+            if (file_exists($addonsDir . '/' . $identifier) && str_ends_with($identifier, '.php')) {
+                $addonFile = $addonsDir . '/' . $identifier;
+                $addonType = 'file';
+            }
+            // Check for folder-based addon: addons/{identifier}/addon.php
+            elseif (file_exists($addonsDir . '/' . $identifier . '/addon.php')) {
+                $addonFile = $addonsDir . '/' . $identifier . '/addon.php';
+                $addonType = 'folder';
+            } else {
+                throw new Exception('Addon not found: ' . $identifier);
             }
             
             $db = Database::getInstance();
@@ -2477,21 +2594,27 @@ Event::on('route_request', function (array $request): void {
             // If no option exists, initialize with all non-system addons as active
             if ($activeAddons === null) {
                 $activeAddons = [];
+                // Single-file addons
                 foreach (glob($addonsDir . '/*.php') as $file) {
                     $name = basename($file);
                     if (!in_array($name, $systemAddons, true)) {
                         $activeAddons[] = $name;
                     }
                 }
+                // Folder-based addons
+                foreach (glob($addonsDir . '/*/addon.php') as $file) {
+                    $folderName = basename(dirname($file));
+                    $activeAddons[] = $folderName;
+                }
             }
             
             // Toggle the addon
-            $isActive = in_array($filename, $activeAddons, true);
+            $isActive = in_array($identifier, $activeAddons, true);
             if ($isActive) {
-                $activeAddons = array_values(array_diff($activeAddons, [$filename]));
+                $activeAddons = array_values(array_diff($activeAddons, [$identifier]));
                 $newState = false;
             } else {
-                $activeAddons[] = $filename;
+                $activeAddons[] = $identifier;
                 $newState = true;
             }
             
@@ -2505,8 +2628,8 @@ Event::on('route_request', function (array $request): void {
             }
             
             // Get addon name for message
-            $addonName = ucwords(str_replace(['_', '.php'], [' ', ''], $filename));
-            $content = file_get_contents($addonsDir . '/' . $filename, false, null, 0, 2048);
+            $addonName = ucwords(str_replace(['_', '-', '.php'], [' ', ' ', ''], $identifier));
+            $content = file_get_contents($addonFile, false, null, 0, 2048);
             if (preg_match('/Addon Name:\s*(.*)$/mi', $content, $m)) {
                 $addonName = trim($m[1]);
             }
