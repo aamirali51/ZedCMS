@@ -468,6 +468,40 @@ function formatBytes($bytes, $precision = 1) {
             gap: 12px;
         }
     }
+
+    /* Media Select Checkbox */
+    .media-select-checkbox {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        z-index: 25;
+        width: 20px;
+        height: 20px;
+        border-radius: 6px;
+        border: 2px solid rgba(255,255,255,0.8);
+        background: rgba(0,0,0,0.4);
+        appearance: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        opacity: 0;
+    }
+    .media-card:hover .media-select-checkbox,
+    .media-card.selected .media-select-checkbox,
+    .media-select-checkbox:checked {
+        opacity: 1;
+    }
+    .media-select-checkbox:checked {
+        background: var(--media-primary);
+        border-color: var(--media-primary);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3E%3C/svg%3E");
+        background-size: 16px;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+    .media-card.selected {
+        box-shadow: 0 0 0 3px var(--media-primary);
+         transform: translateY(-4px);
+    }
 </style>
 
 <div class="media-manager">
@@ -488,6 +522,12 @@ function formatBytes($bytes, $precision = 1) {
                        placeholder="Search media files..." 
                        autocomplete="off">
             </div>
+
+            <!-- Batch Delete Button -->
+            <button type="button" class="media-upload-btn" id="batchDeleteBtn" style="background: linear-gradient(135deg, var(--media-danger) 0%, #dc2626 100%); display: none;">
+                <span class="material-symbols-outlined">delete</span>
+                Delete Selected (<span id="selectedMediaCount">0</span>)
+            </button>
 
             <!-- Upload Button -->
             <button type="button" class="media-upload-btn" id="uploadBtn">
@@ -540,6 +580,9 @@ function formatBytes($bytes, $precision = 1) {
                     <img src="<?php echo htmlspecialchars($file['thumb']); ?>" 
                          alt="<?php echo htmlspecialchars($file['name']); ?>"
                          loading="lazy">
+                    
+                    <!-- Checkbox -->
+                    <input type="checkbox" class="media-select-checkbox" value="<?php echo htmlspecialchars($file['name']); ?>">
                     
                     <!-- Delete Button -->
                     <button type="button" 
@@ -765,6 +808,78 @@ function formatBytes($bytes, $precision = 1) {
             showToast('Delete failed: ' + err.message, 'error');
         }
     });
+
+    // ========== BATCH DELETE ==========
+    const batchDeleteBtn = document.getElementById('batchDeleteBtn');
+    const selectedMediaCountSpan = document.getElementById('selectedMediaCount');
+
+    function updateBatchActions() {
+        const checked = grid.querySelectorAll('.media-select-checkbox:checked');
+        const count = checked.length;
+        if (selectedMediaCountSpan) selectedMediaCountSpan.textContent = count;
+        
+        if (count > 0) {
+            batchDeleteBtn.style.display = 'inline-flex';
+        } else {
+            batchDeleteBtn.style.display = 'none';
+        }
+    }
+
+    grid.addEventListener('change', (e) => {
+        if(e.target.classList.contains('media-select-checkbox')) {
+            const card = e.target.closest('.media-card');
+            if(e.target.checked) {
+                card.classList.add('selected');
+            } else {
+                card.classList.remove('selected');
+            }
+            updateBatchActions();
+        }
+    });
+    
+    // Prevent clicking checkbox from triggering card click (which copies URL)
+    grid.addEventListener('click', (e) => {
+        if(e.target.classList.contains('media-select-checkbox')) {
+            e.stopPropagation();
+        }
+    });
+
+    if (batchDeleteBtn) {
+        batchDeleteBtn.addEventListener('click', async () => {
+            const checked = Array.from(grid.querySelectorAll('.media-select-checkbox:checked'));
+            const files = checked.map(cb => cb.value);
+            
+            if (files.length === 0) return;
+            
+            if (!confirm(`Permanently delete ${files.length} selected files?`)) return;
+            
+            try {
+                batchDeleteBtn.disabled = true;
+                batchDeleteBtn.textContent = 'Deleting...';
+                
+                const response = await fetch('<?php echo \Core\Router::url('/admin/api/batch-delete-media'); ?>', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ files: files })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast(`${result.count} files deleted`);
+                    setTimeout(() => location.reload(), 500);
+                } else {
+                    showToast('Error: ' + (result.error || 'Unknown error'), 'error');
+                    batchDeleteBtn.disabled = false;
+                    batchDeleteBtn.innerHTML = '<span class="material-symbols-outlined">delete</span> Delete Selected (' + files.length + ')';
+                }
+            } catch (err) {
+                showToast('Error: ' + err.message, 'error');
+                batchDeleteBtn.disabled = false;
+                batchDeleteBtn.innerHTML = '<span class="material-symbols-outlined">delete</span> Delete Selected (' + files.length + ')';
+            }
+        });
+    }
 
     // ========== KEYBOARD SHORTCUTS ==========
     document.addEventListener('keydown', (e) => {

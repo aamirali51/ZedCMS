@@ -237,21 +237,21 @@ zed_mail([
 
 ## Implementation Checklist
 
-### Phase 1: Core APIs ☐
-- [ ] **Shortcode System** — `zed_register_shortcode()`, parse in content render
-- [ ] **Admin Settings API** — `zed_register_addon_settings()`, auto-generate UI
-- [ ] **AJAX Handler Pattern** — `zed_register_ajax()`, clean route pattern
-- [ ] **Admin Notices** — `zed_add_notice()`, session-based flash messages
+### Phase 1: Core APIs ✅
+- [x] **Shortcode System** — `zed_register_shortcode()`, parse in content render
+- [x] **Admin Settings API** — `zed_register_addon_settings()`, auto-generate UI
+- [x] **AJAX Handler Pattern** — `zed_register_ajax()`, clean route pattern
+- [x] **Admin Notices** — `zed_add_notice()`, session-based flash messages
 
-### Phase 2: Editor Integration ☐
-- [ ] **Metabox API** — `zed_register_metabox()`, sidebar fields in editor
-- [ ] **Script/Style Enqueue** — `zed_enqueue_script()`, proper dependency loading
-- [ ] **Nonce/CSRF Helpers** — `zed_create_nonce()`, `zed_verify_nonce()`
+### Phase 2: Editor Integration ✅
+- [x] **Metabox API** — `zed_register_metabox()`, sidebar fields in editor
+- [x] **Script/Style Enqueue** — `zed_enqueue_script()`, proper dependency loading
+- [x] **Nonce/CSRF Helpers** — `zed_create_nonce()`, `zed_verify_nonce()`
 
-### Phase 3: Advanced ☐
-- [ ] **Transients/Cache** — `zed_set_transient()`, `zed_get_transient()`
-- [ ] **Cron/Scheduled Tasks** — `zed_schedule_event()`, `/cron.php` endpoint
-- [ ] **Email Helper** — `zed_mail()`, template support
+### Phase 3: Advanced ✅
+- [x] **Transients/Cache** — `zed_set_transient()`, `zed_get_transient()`
+- [x] **Cron/Scheduled Tasks** — `zed_schedule_event()`, `/cron.php` endpoint
+- [x] **Email Helper** — `zed_mail()`, template support
 
 ---
 

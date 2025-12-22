@@ -1,0 +1,115 @@
+/**
+ * Zed Contact Form — Custom Styles
+ * 
+ * Enhanced styling for the contact form with theme integration
+ */
+
+/* Form Container */
+.zed-contact-form-wrapper {
+    max-width: 100%;
+}
+
+/* Form Fields */
+.zed-contact-form-wrapper input,
+.zed-contact-form-wrapper select,
+.zed-contact-form-wrapper textarea {
+    font-family: inherit;
+    transition: all 0.2s ease;
+}
+
+.zed-contact-form-wrapper input:focus,
+.zed-contact-form-wrapper select:focus,
+.zed-contact-form-wrapper textarea:focus {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+}
+
+/* Submit Button */
+.zed-contact-form-wrapper button[type="submit"] {
+    position: relative;
+    overflow: hidden;
+}
+
+.zed-contact-form-wrapper button[type="submit"]::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+}
+
+.zed-contact-form-wrapper button[type="submit"]:hover::before {
+    width: 300px;
+    height: 300px;
+}
+
+/* Loading Spinner */
+.zed-contact-form-wrapper .btn-loading svg {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Feedback Messages */
+.zed-contact-form-wrapper #zc-feedback {
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive Improvements */
+@media (max-width: 768px) {
+    .zed-contact-form-wrapper {
+        padding: 0;
+    }
+
+    .zed-contact-form-wrapper button[type="submit"] {
+        width: 100%;
+    }
+}
+
+/* Theme Integration - CSS Variables */
+.zed-contact-form-wrapper {
+    --form-primary: #6366f1;
+    --form-primary-dark: #4f46e5;
+    --form-border: #e2e8f0;
+    --form-focus: rgba(99, 102, 241, 0.1);
+}
+
+/* Dark mode support (if theme provides .dark class) */
+.dark .zed-contact-form-wrapper {
+    --form-primary: #818cf8;
+    --form-primary-dark: #6366f1;
+    --form-border: #334155;
+    --form-focus: rgba(129, 140, 248, 0.2);
+}
+
+.dark .zed-contact-form-wrapper input,
+.dark .zed-contact-form-wrapper textarea {
+    background: #1e293b;
+    color: #f1f5f9;
+    border-color: var(--form-border);
+}

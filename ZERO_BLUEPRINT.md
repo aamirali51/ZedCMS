@@ -1,8 +1,8 @@
 # Zed CMS — Master Architecture Blueprint
 
-> **Version:** 2.3.0  
+> **Version:** 2.4.0  
 > **Generated:** 2025-12-22  
-> **Last Update:** 2025-12-22 — Frontend Helper System (70+ functions), Template Library Addon  
+> **Last Update:** 2025-12-22 — Modular Admin Architecture, Addon DX APIs (Shortcodes, AJAX, Settings, Metabox, Enqueue)  
 > **Purpose:** Source of Truth for all development activities.
 
 ---
@@ -90,7 +90,12 @@ ZedCMS/
 │
 ├── content/                     # USER CONTENT & EXTENSIONS
 │   ├── addons/                  # ✅ Plugin system
-│   │   ├── admin_addon.php      # Admin routes, API, RBAC
+│   │   ├── admin_addon.php      # Entry point (loads modular files)
+│   │   ├── admin/               # ✅ NEW: Modular admin system
+│   │   │   ├── rbac.php         # Role-Based Access Control
+│   │   │   ├── api.php          # AJAX, Settings, Notices, Metabox, Enqueue
+│   │   │   ├── helpers.php      # Content processing, image handling
+│   │   │   └── routes.php       # All /admin/* route handlers
 │   │   ├── frontend_addon.php   # Public routing, theme API (entry point)
 │   │   ├── wiki_addon.php       # ✅ Developer wiki system
 │   │   ├── frontend/            # ✅ NEW: Organized helper system
@@ -104,7 +109,11 @@ ZedCMS/
 │   │   │   ├── helpers_seo.php        # zed_meta_tags(), zed_schema_markup()
 │   │   │   ├── helpers_conditionals.php # zed_is_home(), zed_is_single()
 │   │   │   ├── helpers_urls.php       # zed_theme_url(), zed_base_url()
-│   │   │   └── helpers_related.php    # zed_get_related_posts()
+│   │   │   ├── helpers_related.php    # zed_get_related_posts()
+│   │   │   ├── helpers_shortcodes.php # ✅ NEW: Shortcode system
+│   │   │   ├── helpers_security.php   # ✅ NEW: Nonce/CSRF protection
+│   │   │   ├── helpers_cache.php      # ✅ NEW: Transient API
+│   │   │   └── helpers_email.php      # ✅ NEW: Email helpers
 │   │   └── template_library/    # ✅ NEW: Page template addon
 │   │       ├── addon.php        # Template registration & routing
 │   │       ├── pages/           # Admin showcase UI
@@ -305,6 +314,211 @@ Templates are self-contained with:
 - Material Symbols icons
 - Theme part fallbacks
 - Sticky footer layout
+
+### 1.8 Addon Developer Experience (DX) APIs
+
+Zed CMS v2.4.0 introduces a comprehensive Addon DX layer to make addon development trivial. All APIs are in `content/addons/admin/api.php` and `content/addons/frontend/helpers_*.php`.
+
+#### Shortcode System
+
+Register shortcodes that can be used in content:
+
+```php
+zed_register_shortcode('youtube', function($attrs, $content) {
+    $id = $attrs['id'] ?? '';
+    return '<iframe src="https://youtube.com/embed/' . $id . '"></iframe>';
+});
+// Usage in content: [youtube id="dQw4w9WgXcQ"]
+```
+
+| Function | Purpose |
+|----------|---------|
+| `zed_register_shortcode($tag, $callback)` | Register a shortcode |
+| `zed_do_shortcodes($content)` | Parse and execute shortcodes |
+| `zed_strip_shortcodes($content)` | Remove shortcodes from content |
+
+#### AJAX Handler System
+
+Register secure AJAX endpoints:
+
+```php
+zed_register_ajax('submit_form', function($data) {
+    return ['success' => true, 'name' => $data['name']];
+}, require_auth: false, method: 'POST');
+// Endpoint: POST /api/ajax/submit_form
+```
+
+| Function | Purpose |
+|----------|---------|
+| `zed_register_ajax($action, $callback, $auth, $method, $cap)` | Register AJAX handler |
+| `zed_get_ajax_handlers()` | Get all registered handlers |
+
+#### Admin Notices (Flash Messages)
+
+Display feedback messages:
+
+```php
+zed_add_notice('Settings saved!', 'success');
+zed_add_notice('Error occurred', 'error');
+// Types: success, error, warning, info
+```
+
+| Function | Purpose |
+|----------|---------|
+| `zed_add_notice($message, $type, $dismissible)` | Add flash message |
+| `zed_get_notices()` | Get and clear notices |
+| `zed_render_notices()` | Render notices HTML |
+
+#### Addon Settings API
+
+Auto-generate settings pages:
+
+```php
+zed_register_addon_settings('my_seo', [
+    'title' => 'SEO Settings',
+    'fields' => [
+        ['id' => 'tracking_id', 'type' => 'text', 'label' => 'GA Tracking ID'],
+        ['id' => 'enabled', 'type' => 'toggle', 'label' => 'Enable Tracking'],
+        ['id' => 'position', 'type' => 'select', 'label' => 'Position', 
+         'options' => ['head' => 'In Head', 'body' => 'In Body']],
+    ]
+]);
+// Settings page at: /admin/addon-settings/my_seo
+```
+
+| Function | Purpose |
+|----------|---------|
+| `zed_register_addon_settings($id, $config)` | Register settings page |
+| `zed_get_addon_option($addon, $field, $default)` | Get setting value |
+| `zed_set_addon_option($addon, $field, $value)` | Save setting value |
+
+#### Metabox System
+
+Add custom fields to the editor sidebar:
+
+```php
+zed_register_metabox('book_details', [
+    'title' => 'Book Details',
+    'post_types' => ['book'],
+    'fields' => [
+        ['id' => 'isbn', 'type' => 'text', 'label' => 'ISBN'],
+        ['id' => 'pages', 'type' => 'number', 'label' => 'Page Count'],
+    ]
+]);
+```
+
+| Function | Purpose |
+|----------|---------|
+| `zed_register_metabox($id, $config)` | Register metabox |
+| `zed_get_metaboxes_for_type($type)` | Get metaboxes for post type |
+| `zed_render_metabox($id, $postData)` | Render metabox HTML |
+
+#### Script/Style Enqueue
+
+Proper asset loading with dependencies:
+
+```php
+zed_enqueue_script('my-charts', '/content/addons/my-addon/charts.js', [
+    'deps' => ['jquery'],
+    'version' => '1.0.0',
+    'in_footer' => true,
+]);
+
+zed_enqueue_style('my-styles', '/content/addons/my-addon/styles.css', [
+    'version' => '1.0.0',
+]);
+```
+
+| Function | Purpose |
+|----------|---------|
+| `zed_enqueue_script($handle, $src, $options)` | Queue JavaScript |
+| `zed_enqueue_style($handle, $src, $options)` | Queue CSS |
+| `zed_dequeue_script($handle)` | Remove script |
+| `zed_render_scripts($isAdmin, $inFooter)` | Output script tags |
+| `zed_render_styles($isAdmin)` | Output link tags |
+
+#### Security Helpers (Nonces)
+
+CSRF protection:
+
+```php
+// In form:
+<?= zed_nonce_field('delete_post') ?>
+
+// On submit:
+zed_check_nonce('delete_post'); // Dies if invalid
+```
+
+| Function | Purpose |
+|----------|---------|
+| `zed_create_nonce($action)` | Generate nonce token |
+| `zed_verify_nonce($nonce, $action)` | Verify nonce |
+| `zed_nonce_field($action, $name)` | Output hidden field |
+| `zed_check_nonce($action, $name)` | Verify or die |
+
+#### Transient/Cache API
+
+Temporary data storage:
+
+```php
+// Basic usage
+zed_set_transient('api_data', $data, 3600); // 1 hour
+$data = zed_get_transient('api_data');
+
+// Remember pattern (fetch and cache)
+$data = zed_remember('expensive_query', function() {
+    return fetch_from_api();
+}, 3600);
+```
+
+| Function | Purpose |
+|----------|---------|
+| `zed_set_transient($key, $value, $expiration)` | Store with TTL |
+| `zed_get_transient($key)` | Retrieve if not expired |
+| `zed_delete_transient($key)` | Remove |
+| `zed_remember($key, $callback, $expiration)` | Cache callback result |
+
+#### Email Helpers
+
+Send emails easily:
+
+```php
+zed_mail([
+    'to' => 'user@example.com',
+    'subject' => 'Welcome!',
+    'body' => '<h1>Hello!</h1>',
+    'html' => true,
+]);
+
+// With template
+zed_mail_template('welcome', ['name' => 'John'], [
+    'to' => 'john@example.com',
+    'subject' => 'Welcome, John!'
+]);
+```
+
+| Function | Purpose |
+|----------|---------|
+| `zed_mail($args)` | Send email |
+| `zed_mail_template($template, $vars, $args)` | Send templated email |
+| `zed_queue_mail($args)` | Queue for background send |
+
+#### Cron/Scheduled Tasks
+
+Register scheduled events (run via `/cron.php`):
+
+```php
+zed_schedule_event('cleanup', 'daily', function() {
+    delete_old_records();
+});
+```
+
+| Schedule | Interval |
+|----------|----------|
+| `hourly` | 3600s |
+| `twicedaily` | 43200s |
+| `daily` | 86400s |
+| `weekly` | 604800s |
 
 
 ## 2. Implementation Status (Audit)

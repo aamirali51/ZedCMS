@@ -100,6 +100,20 @@ if (!function_exists('buildContentUrl')) {
     </div>
 </div>
 
+
+<!-- Bulk Actions Bar -->
+<div id="bulkActionsBar" class="hidden bg-indigo-50 border border-indigo-100 rounded-xl mb-6 px-6 py-4 flex items-center justify-between transition-all">
+    <div class="flex items-center gap-3">
+            <span class="text-indigo-700 text-sm font-medium"><span id="selectedCount">0</span> items selected</span>
+    </div>
+    <div class="flex items-center gap-2">
+        <button id="batchDeleteBtn" class="bg-white text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors shadow-sm">
+            <span class="material-symbols-outlined text-[18px]">delete</span>
+            Delete Selected
+        </button>
+    </div>
+</div>
+
 <!-- Content Table -->
 <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
     <?php if (!empty($posts)): ?>
@@ -107,6 +121,9 @@ if (!function_exists('buildContentUrl')) {
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10">
+                        <input type="checkbox" id="selectAll" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer">
+                    </th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                         Title
                     </th>
@@ -131,6 +148,9 @@ if (!function_exists('buildContentUrl')) {
                     $updatedAt = $post['updated_at'] ? date('M j, Y', strtotime($post['updated_at'])) : '-';
                 ?>
                 <tr class="hover:bg-gray-50 transition-colors group">
+                    <td class="px-6 py-4">
+                        <input type="checkbox" class="row-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer" value="<?= $post['id'] ?>">
+                    </td>
                     <td class="px-6 py-4">
                         <div class="flex items-center gap-3">
                             <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center text-indigo-600 font-bold text-sm">
@@ -235,3 +255,88 @@ if (!function_exists('buildContentUrl')) {
     </div>
     <?php endif; ?>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectAll = document.getElementById('selectAll');
+        const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+        const bulkActionsBar = document.getElementById('bulkActionsBar');
+        const selectedCountSpan = document.getElementById('selectedCount');
+        const batchDeleteBtn = document.getElementById('batchDeleteBtn');
+        const baseUrl = '<?= $base_url ?>';
+
+        function updateBulkActions() {
+            const selected = document.querySelectorAll('.row-checkbox:checked');
+            selectedCountSpan.textContent = selected.length;
+            
+            if (selected.length > 0) {
+                bulkActionsBar.classList.remove('hidden');
+            } else {
+                bulkActionsBar.classList.add('hidden');
+            }
+        }
+
+        // Toggle all
+        if (selectAll) {
+            selectAll.addEventListener('change', function() {
+                const checkboxes = document.querySelectorAll('.row-checkbox');
+                checkboxes.forEach(cb => cb.checked = this.checked);
+                updateBulkActions();
+            });
+        }
+
+        // Individual toggle
+        document.querySelector('table').addEventListener('change', function(e) {
+            if (e.target.classList.contains('row-checkbox')) {
+                updateBulkActions();
+                
+                // Update selectAll state
+                const all = document.querySelectorAll('.row-checkbox');
+                const checked = document.querySelectorAll('.row-checkbox:checked');
+                if (selectAll) {
+                    selectAll.checked = all.length > 0 && all.length === checked.length;
+                    selectAll.indeterminate = checked.length > 0 && checked.length < all.length;
+                }
+            }
+        });
+
+        // Batch Delete
+        if (batchDeleteBtn) {
+            batchDeleteBtn.addEventListener('click', async function() {
+                const selected = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
+                if (selected.length === 0) return;
+
+                if (!confirm(`Are you sure you want to delete ${selected.length} items? This cannot be undone.`)) {
+                    return;
+                }
+
+                try {
+                    batchDeleteBtn.disabled = true;
+                    batchDeleteBtn.innerHTML = '<span class="material-symbols-outlined text-[18px] animate-spin">refresh</span> Deleting...';
+
+                    const response = await fetch(baseUrl + '/admin/api/batch-delete-content', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ ids: selected })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        window.location.reload();
+                    } else {
+                        alert('Error: ' + (result.error || 'Unknown error'));
+                        batchDeleteBtn.disabled = false;
+                        batchDeleteBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">delete</span> Delete Selected';
+                    }
+                } catch (e) {
+                    alert('Error: ' + e.message);
+                    batchDeleteBtn.disabled = false;
+                    batchDeleteBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">delete</span> Delete Selected';
+                }
+            });
+        }
+    });
+</script>

@@ -119,7 +119,13 @@ $GLOBALS['post'] = $post;
             </header>
             
             <!-- Featured Image -->
-            <?php if ($featured_image): ?>
+            <?php 
+            $has_valid_image = $featured_image && 
+                strlen($featured_image) > 10 && 
+                (str_starts_with($featured_image, 'http') || str_starts_with($featured_image, '/')) &&
+                (preg_match('/\.(jpg|jpeg|png|gif|webp|svg)($|\?)/i', $featured_image) || str_contains($featured_image, '/uploads/'));
+            ?>
+            <?php if ($has_valid_image): ?>
             <figure class="mb-12 -mx-6 md:mx-0">
                 <img src="<?= htmlspecialchars($featured_image) ?>" 
                      alt="<?= htmlspecialchars($title) ?>" 

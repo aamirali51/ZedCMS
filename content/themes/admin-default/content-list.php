@@ -222,13 +222,26 @@ $showingTo = min($offset + $perPage, $totalPosts);
         </div>
     </div>
 
+    <!-- Bulk Actions Bar -->
+    <div id="bulkActionsBar" class="hidden bg-indigo-50 border-x border-t border-indigo-100 px-6 py-3 flex items-center justify-between transition-all">
+        <div class="flex items-center gap-3">
+             <span class="text-indigo-700 text-sm font-medium"><span id="selectedCount">0</span> items selected</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <button id="batchDeleteBtn" class="bg-white text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-2 transition-colors">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                Delete Selected
+            </button>
+        </div>
+    </div>
+
     <!-- 2. The Data Grid (Rich Table) -->
     <div class="overflow-x-auto border border-gray-200 bg-white">
         <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
                 <tr>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10">
-                        <input type="checkbox" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                        <input type="checkbox" id="selectAll" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
                     </th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Title & Slug</th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
@@ -251,7 +264,7 @@ $showingTo = min($offset + $perPage, $totalPosts);
                     ?>
                     <tr class="hover:bg-gray-50 group transition-colors">
                         <td class="px-6 py-4 whitespace-nowrap">
-                            <input type="checkbox" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                            <input type="checkbox" class="row-checkbox rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" value="<?= $post['id'] ?>">
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap">
                             <div class="flex items-center">
@@ -335,4 +348,89 @@ $showingTo = min($offset + $perPage, $totalPosts);
     </div>
 
 </div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectAll = document.getElementById('selectAll');
+        const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+        const bulkActionsBar = document.getElementById('bulkActionsBar');
+        const selectedCountSpan = document.getElementById('selectedCount');
+        const batchDeleteBtn = document.getElementById('batchDeleteBtn');
+        const baseUrl = '<?= $base_url ?>';
+
+        function updateBulkActions() {
+            const selected = document.querySelectorAll('.row-checkbox:checked');
+            selectedCountSpan.textContent = selected.length;
+            
+            if (selected.length > 0) {
+                bulkActionsBar.classList.remove('hidden');
+            } else {
+                bulkActionsBar.classList.add('hidden');
+            }
+        }
+
+        // Toggle all
+        if (selectAll) {
+            selectAll.addEventListener('change', function() {
+                const checkboxes = document.querySelectorAll('.row-checkbox');
+                checkboxes.forEach(cb => cb.checked = this.checked);
+                updateBulkActions();
+            });
+        }
+
+        // Individual toggle
+        // Use delegation or re-query to ensure we catch them
+        document.querySelector('table').addEventListener('change', function(e) {
+            if (e.target.classList.contains('row-checkbox')) {
+                updateBulkActions();
+                
+                // Update selectAll state
+                const all = document.querySelectorAll('.row-checkbox');
+                const checked = document.querySelectorAll('.row-checkbox:checked');
+                if (selectAll) {
+                    selectAll.checked = all.length > 0 && all.length === checked.length;
+                    selectAll.indeterminate = checked.length > 0 && checked.length < all.length;
+                }
+            }
+        });
+
+        // Batch Delete
+        if (batchDeleteBtn) {
+            batchDeleteBtn.addEventListener('click', async function() {
+                const selected = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
+                if (selected.length === 0) return;
+
+                if (!confirm(`Are you sure you want to delete ${selected.length} items? This cannot be undone.`)) {
+                    return;
+                }
+
+                try {
+                    batchDeleteBtn.disabled = true;
+                    batchDeleteBtn.innerHTML = 'Deleting...';
+
+                    const response = await fetch(baseUrl + '/admin/api/batch-delete-content', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ ids: selected })
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        window.location.reload();
+                    } else {
+                        alert('Error: ' + (result.error || 'Unknown error'));
+                        batchDeleteBtn.disabled = false;
+                        batchDeleteBtn.innerHTML = 'Delete Selected';
+                    }
+                } catch (e) {
+                    alert('Error: ' + e.message);
+                    batchDeleteBtn.disabled = false;
+                    batchDeleteBtn.innerHTML = 'Delete Selected';
+                }
+            });
+        }
+    });
+</script>
 </body></html>

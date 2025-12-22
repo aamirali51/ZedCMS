@@ -47,7 +47,9 @@ $helperDir = __DIR__ . '/frontend';
 $helpers = [
     'helpers_urls.php',         // URLs (no dependencies)
     'helpers_utils.php',        // Utilities (no dependencies)
+    'helpers_security.php',     // Nonces/CSRF (no dependencies)
     'helpers_conditionals.php', // Conditionals (needs Router)
+    'helpers_shortcodes.php',   // Shortcodes (no dependencies)
     'helpers_content.php',      // Content queries (needs Database)
     'helpers_data.php',         // Data extraction (needs helpers_utils, helpers_content)
     'helpers_media.php',        // Images (needs helpers_data)
@@ -56,6 +58,8 @@ $helpers = [
     'helpers_pagination.php',   // Pagination (needs Router)
     'helpers_seo.php',          // SEO (needs helpers_data, helpers_urls)
     'helpers_related.php',      // Related (needs helpers_content, helpers_taxonomy)
+    'helpers_cache.php',        // Transients (needs Database)
+    'helpers_email.php',        // Email (no dependencies)
 ];
 
 foreach ($helpers as $helper) {
@@ -1700,6 +1704,11 @@ Event::on('route_request', function (array $request): void {
                     $blocks = $data['content'] ?? [];
                     $htmlContent = render_blocks($blocks);
                     
+                    // Process shortcodes
+                    if (function_exists('zed_do_shortcodes')) {
+                        $htmlContent = zed_do_shortcodes($htmlContent);
+                    }
+                    
                     // Template data
                     $post_type = $matchedType;
                     $post_type_label = $matchedTypeConfig['singular'] ?? ucfirst($matchedType);
@@ -1804,6 +1813,12 @@ Event::on('route_request', function (array $request): void {
                 
                 // Render
                 $renderedContent = render_blocks($blocks);
+                
+                // Process shortcodes
+                if (function_exists('zed_do_shortcodes')) {
+                    $renderedContent = zed_do_shortcodes($renderedContent);
+                }
+                
                 $html = render_page($post, $renderedContent);
                 
                 Router::setHandled($html);
@@ -1842,6 +1857,11 @@ Event::on('route_request', function (array $request): void {
             
             // Render BlockNote JSON to HTML
             $htmlContent = render_blocks($blocks);
+            
+            // Process shortcodes in the rendered content
+            if (function_exists('zed_do_shortcodes')) {
+                $htmlContent = zed_do_shortcodes($htmlContent);
+            }
             
             // Make base_url available to templates
             $base_url = Router::getBasePath();
