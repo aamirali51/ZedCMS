@@ -1,8 +1,8 @@
 # Zed CMS — Master Architecture Blueprint
 
-> **Version:** 2.2.0  
-> **Generated:** 2025-12-22 (Updated)  
-> **Last Update:** 2025-12-22 — Theme API v2 (Scoped Hooks, CPT, Asset Injection, Dependencies)  
+> **Version:** 2.3.0  
+> **Generated:** 2025-12-22  
+> **Last Update:** 2025-12-22 — Frontend Helper System (70+ functions), Template Library Addon  
 > **Purpose:** Source of Truth for all development activities.
 
 ---
@@ -74,7 +74,7 @@ Zed CMS is a **Hybrid PHP + React** content management system built on an **even
 ### 1.3 Directory Structure
 
 ```
-F:\laragon\www\Zero\
+ZedCMS/
 ├── index.php                    # ✅ Entry point (protected system addons)
 ├── config.php                   # ✅ Database & app config
 ├── install.php                  # ✅ Database installer
@@ -83,52 +83,72 @@ F:\laragon\www\Zero\
 ├── core/                        # ✅ CORE ENGINE (6 classes)
 │   ├── App.php                  # Micro-kernel bootstrap + migration trigger
 │   ├── Router.php               # Event-driven routing (NO hardcoded routes)
-│   ├── Event.php                # WordPress-style hook system
+│   ├── Event.php                # Hook system (on, trigger, filter)
 │   ├── Database.php             # PDO wrapper with JSON support
 │   ├── Auth.php                 # Session-based authentication
-│   └── Migrations.php           # ✅ NEW: Version tracking & safe upgrades
+│   └── Migrations.php           # Version tracking & safe upgrades
 │
 ├── content/                     # USER CONTENT & EXTENSIONS
 │   ├── addons/                  # ✅ Plugin system
-│   │   ├── admin_addon.php      # All admin routes & API
-│   │   ├── frontend_addon.php   # Public content viewing & BlockNote renderer
-│   │   └── test_addon.php       # Sample addon
+│   │   ├── admin_addon.php      # Admin routes, API, RBAC
+│   │   ├── frontend_addon.php   # Public routing, theme API (entry point)
+│   │   ├── wiki_addon.php       # ✅ Developer wiki system
+│   │   ├── frontend/            # ✅ NEW: Organized helper system
+│   │   │   ├── helpers_content.php    # zed_get_post(), zed_get_posts()
+│   │   │   ├── helpers_data.php       # zed_get_title(), zed_get_excerpt()
+│   │   │   ├── helpers_media.php      # zed_get_featured_image()
+│   │   │   ├── helpers_author.php     # zed_get_author()
+│   │   │   ├── helpers_taxonomy.php   # zed_get_categories()
+│   │   │   ├── helpers_pagination.php # zed_pagination()
+│   │   │   ├── helpers_utils.php      # zed_reading_time(), zed_time_ago()
+│   │   │   ├── helpers_seo.php        # zed_meta_tags(), zed_schema_markup()
+│   │   │   ├── helpers_conditionals.php # zed_is_home(), zed_is_single()
+│   │   │   ├── helpers_urls.php       # zed_theme_url(), zed_base_url()
+│   │   │   └── helpers_related.php    # zed_get_related_posts()
+│   │   └── template_library/    # ✅ NEW: Page template addon
+│   │       ├── addon.php        # Template registration & routing
+│   │       ├── pages/           # Admin showcase UI
+│   │       └── templates/       # landing, about, contact, services, faq, pricing
 │   │
 │   ├── themes/
-│   │   └── admin-default/       # ADMIN THEME
-│   │       ├── admin-layout.php  # ✅ Master layout with sidebar
-│   │       ├── dashboard.php     # (Legacy) Admin home
-│   │       ├── content-list.php  # (Legacy) Content grid
-│   │       ├── editor.php        # React editor host page
-│   │       ├── login.php         # Auth form
-│   │       ├── partials/         # ✅ Content partials for layout
-│   │       │   ├── dashboard-content.php
-│   │       │   ├── content-list-content.php
-│   │       │   ├── media-content.php    # ✅ v2: WebP, Drag & Drop, Toast UI
-│   │       │   ├── users-content.php
-│   │       │   ├── addons-content.php   # ✅ v2: Card Grid, Toggle Switches
-│   │       │   ├── themes-content.php   # ✅ NEW: Gallery Grid, Color Preview
-│   │       │   └── settings-content.php
-│   │       └── assets/js/
-│   │           └── editor.bundle.js  # Compiled React bundle
-│   │   └── starter-theme/       # ✅ FE THEME (New)
-│   │       ├── index.php        # Homepage template
-│   │       └── single.php       # Single post template
+│   │   ├── admin-default/       # ADMIN THEME
+│   │   │   ├── admin-layout.php  # Master layout with sidebar
+│   │   │   ├── editor.php        # React editor host page
+│   │   │   ├── login.php         # Auth form
+│   │   │   └── partials/         # Content partials for pages
+│   │   │       ├── dashboard-content.php
+│   │   │       ├── content-list-content.php
+│   │   │       ├── media-content.php
+│   │   │       ├── users-content.php
+│   │   │       ├── addons-content.php
+│   │   │       ├── themes-content.php
+│   │   │       ├── wiki-content.php
+│   │   │       └── settings-content.php
+│   │   │
+│   │   ├── aurora/              # ✅ Modern frontend theme
+│   │   │   ├── index.php        # Homepage template
+│   │   │   ├── single.php       # Single post template
+│   │   │   ├── functions.php    # Theme setup, CPTs
+│   │   │   └── parts/           # Theme partials
+│   │   │       ├── head.php
+│   │   │       ├── header.php
+│   │   │       └── footer.php
+│   │   │
+│   │   └── starter-theme/       # Minimal starter theme
+│   │       ├── index.php
+│   │       └── single.php
 │   │
-│   └── uploads/                 # User uploads (WebP optimized + originals)
+│   └── uploads/                 # User uploads (WebP optimized)
 │
-└── _frontend/                   # ✅ REACT SOURCE (Vite project)
-    ├── package.json             # Dependencies (BlockNote, Tiptap, React)
-    ├── vite.config.js           # Build config → outputs to themes/assets/js
+└── _frontend/                   # REACT SOURCE (Vite project)
+    ├── package.json
+    ├── vite.config.js
     └── src/
         ├── main.jsx             # React entry point
-        ├── index.css            # Global styles
         └── components/
-            ├── blocknote-editor.jsx  # Main editor component
-            ├── drag-handle.jsx       # Block drag functionality
-            ├── simple-editor.jsx     # Alternate Tiptap editor
-            └── slash-dropdown-menu.jsx  # Slash commands UI
+            └── blocknote-editor.jsx  # Main editor component
 ```
+
 
 ### 1.4 Event System (The Heart)
 
@@ -210,7 +230,82 @@ Authors can only see/edit content where `author_id = current_user_id`. This is e
 - Content delete route (ownership check before delete)
 - Content edit API (ownership check before update)
 
----
+### 1.6 Frontend Helper System
+
+Zed CMS provides **70+ theme helper functions** organized into 11 logical files in `content/addons/frontend/`. All helpers follow **pure function principles**: they take explicit parameters and return values (no globals, no side effects).
+
+#### Helper Files
+
+| File | Purpose | Key Functions |
+|------|---------|---------------|
+| `helpers_content.php` | Content queries | `zed_get_post()`, `zed_get_posts()`, `zed_get_pages()` |
+| `helpers_data.php` | Data extraction | `zed_get_title()`, `zed_get_excerpt()`, `zed_get_content()`, `zed_get_permalink()` |
+| `helpers_media.php` | Images | `zed_get_featured_image()`, `zed_has_featured_image()`, `zed_featured_image()` |
+| `helpers_author.php` | Authors | `zed_get_author()`, `zed_get_post_author()`, `zed_get_author_avatar()` |
+| `helpers_taxonomy.php` | Categories | `zed_get_categories()`, `zed_get_post_categories()`, `zed_category_link()` |
+| `helpers_pagination.php` | Navigation | `zed_pagination()`, `zed_get_pagination()`, `zed_get_adjacent_post()` |
+| `helpers_utils.php` | Utilities | `zed_reading_time()`, `zed_time_ago()`, `zed_truncate()`, `zed_share_urls()` |
+| `helpers_seo.php` | SEO/Meta | `zed_meta_tags()`, `zed_og_tags()`, `zed_schema_markup()` |
+| `helpers_conditionals.php` | Conditionals | `zed_is_home()`, `zed_is_single()`, `zed_is_page()`, `zed_is_logged_in()` |
+| `helpers_urls.php` | URLs/Assets | `zed_theme_url()`, `zed_base_url()`, `zed_admin_url()`, `zed_uploads_url()` |
+| `helpers_related.php` | Related content | `zed_get_related_posts()`, `zed_get_featured_posts()`, `zed_get_popular_posts()` |
+
+#### Content Query Example
+
+```php
+// Get posts with flexible query options
+$posts = zed_get_posts([
+    'type' => 'post',
+    'status' => 'published',
+    'limit' => 10,
+    'category' => 'tech',
+    'orderby' => 'created_at',
+    'order' => 'DESC',
+]);
+
+foreach ($posts as $post) {
+    echo zed_get_title($post);
+    echo zed_reading_time(zed_get_content($post)) . ' min read';
+    echo zed_time_ago($post['created_at']);
+    
+    if (zed_has_featured_image($post)) {
+        echo zed_featured_image($post, ['class' => 'rounded-lg']);
+    }
+}
+```
+
+#### Extensibility Filters
+
+| Filter | When Fired | Purpose |
+|--------|------------|---------|
+| `zed_content_html` | After content rendered | Modify HTML output |
+| `zed_excerpt` | After excerpt generated | Modify excerpt |
+| `zed_meta_tags` | After meta tags built | Add custom meta |
+| `zed_schema_data` | Before schema JSON-LD | Add schema properties |
+| `zed_pagination_html` | After pagination built | Customize pagination |
+| `zed_share_urls` | After share URLs built | Add social platforms |
+| `zed_popular_posts` | When fetching popular | Analytics addon can provide real data |
+
+### 1.7 Template Library Addon
+
+The Template Library (`content/addons/template_library/`) provides pre-built page templates that theme developers can use:
+
+| Template | File | Description |
+|----------|------|-------------|
+| Landing | `landing.php` | Hero section, features grid, CTA |
+| About | `about.php` | Story, values, team, stats |
+| Contact | `contact.php` | Contact form, info cards |
+| Services | `services.php` | Service cards grid |
+| FAQ | `faq.php` | Expandable accordion |
+| Pricing | `pricing.php` | Pricing table comparison |
+
+Templates are self-contained with:
+- Tailwind CSS (CDN)
+- Google Fonts
+- Material Symbols icons
+- Theme part fallbacks
+- Sticky footer layout
+
 
 ## 2. Implementation Status (Audit)
 

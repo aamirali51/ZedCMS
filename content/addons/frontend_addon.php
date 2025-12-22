@@ -17,12 +17,53 @@ declare(strict_types=1);
  * - Theme functions.php auto-loading
  * - Theme-driven hooks (zed_before_content, zed_after_content)
  * - Theme Options API (zed_add_theme_setting)
+ * 
+ * Helper System (organized in frontend/ directory):
+ * - helpers_content.php — Content retrieval (zed_get_post, zed_get_posts)
+ * - helpers_data.php — Data extraction (zed_get_title, zed_get_excerpt)
+ * - helpers_media.php — Images (zed_get_featured_image, zed_get_thumbnail)
+ * - helpers_author.php — Authors (zed_get_author, zed_get_post_author)
+ * - helpers_taxonomy.php — Categories (zed_get_categories, zed_get_post_categories)
+ * - helpers_pagination.php — Pagination (zed_pagination, zed_get_adjacent_post)
+ * - helpers_utils.php — Utilities (zed_reading_time, zed_time_ago, zed_truncate)
+ * - helpers_seo.php — SEO (zed_meta_tags, zed_og_tags, zed_schema_markup)
+ * - helpers_conditionals.php — Conditionals (zed_is_home, zed_is_single)
+ * - helpers_urls.php — URLs (zed_theme_url, zed_base_url, zed_admin_url)
+ * - helpers_related.php — Related content (zed_get_related_posts, zed_get_featured_posts)
  */
 
 use Core\Event;
 use Core\Router;
 use Core\Auth;
 use Core\Database;
+
+// =============================================================================
+// HELPER SYSTEM — Organized in frontend/ directory
+// =============================================================================
+
+$helperDir = __DIR__ . '/frontend';
+
+// Load all helper files in dependency order
+$helpers = [
+    'helpers_urls.php',         // URLs (no dependencies)
+    'helpers_utils.php',        // Utilities (no dependencies)
+    'helpers_conditionals.php', // Conditionals (needs Router)
+    'helpers_content.php',      // Content queries (needs Database)
+    'helpers_data.php',         // Data extraction (needs helpers_utils, helpers_content)
+    'helpers_media.php',        // Images (needs helpers_data)
+    'helpers_author.php',       // Authors (needs Database, helpers_content)
+    'helpers_taxonomy.php',     // Categories (needs Database, helpers_data)
+    'helpers_pagination.php',   // Pagination (needs Router)
+    'helpers_seo.php',          // SEO (needs helpers_data, helpers_urls)
+    'helpers_related.php',      // Related (needs helpers_content, helpers_taxonomy)
+];
+
+foreach ($helpers as $helper) {
+    $helperPath = $helperDir . '/' . $helper;
+    if (file_exists($helperPath)) {
+        require_once $helperPath;
+    }
+}
 
 // =============================================================================
 // CUSTOM POST TYPE (CPT) ENGINE
