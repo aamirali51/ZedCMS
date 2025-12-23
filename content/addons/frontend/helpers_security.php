@@ -74,7 +74,7 @@ function zed_nonce_field(string $action, string $name = '_zed_nonce'): string
  */
 function zed_check_nonce(string $action, string $name = '_zed_nonce'): bool
 {
-    $nonce = $_POST[$name] ?? $_GET[$name] ?? '';
+    $nonce = $_POST[$name] ?? $_GET[$name] ?? $_SERVER['HTTP_X_ZED_NONCE'] ?? '';
     
     if (!zed_verify_nonce($nonce, $action)) {
         if (zed_is_ajax_request()) {
@@ -87,6 +87,32 @@ function zed_check_nonce(string $action, string $name = '_zed_nonce'): bool
     }
     
     return true;
+}
+
+/**
+ * Verify AJAX nonce without dying - returns boolean
+ * Checks: POST _zed_nonce, JSON body nonce, or X-ZED-NONCE header
+ * 
+ * @param string $action Action to verify
+ * @param array|null $data Optional JSON data already parsed
+ * @return bool True if nonce is valid
+ */
+function zed_verify_ajax_nonce(string $action, ?array $data = null): bool
+{
+    // Check HTTP header first (preferred for AJAX)
+    $nonce = $_SERVER['HTTP_X_ZED_NONCE'] ?? '';
+    
+    // Fallback to POST/GET
+    if (empty($nonce)) {
+        $nonce = $_POST['_zed_nonce'] ?? $_POST['nonce'] ?? $_GET['_zed_nonce'] ?? '';
+    }
+    
+    // Fallback to JSON body
+    if (empty($nonce) && $data !== null) {
+        $nonce = $data['_zed_nonce'] ?? $data['nonce'] ?? '';
+    }
+    
+    return zed_verify_nonce($nonce, $action);
 }
 
 /**

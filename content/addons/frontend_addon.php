@@ -1068,55 +1068,59 @@ function zed_primary_menu(array $options = []): string
 
 // =============================================================================
 // OPTIONS HELPER - Cached database lookups for settings
+// Uses admin/api.php's zed_get_option if loaded, otherwise defines fallback
 // =============================================================================
 
-/**
- * Get a site option from zed_options table
- * Results are cached in a static variable to prevent repeated DB queries.
- *
- * @param string $name Option name
- * @param mixed $default Default value if option not found
- * @return mixed Option value or default
- */
-function zed_get_option(string $name, mixed $default = ''): mixed
-{
-    static $optionsCache = null;
-    
-    // Load all options on first call (single query)
-    if ($optionsCache === null) {
-        $optionsCache = [];
+// Only define if not already defined by admin/api.php (admin addon is authoritative)
+if (!function_exists('zed_get_option')) {
+    /**
+     * Get a site option from zed_options table
+     * Results are cached in a static variable to prevent repeated DB queries.
+     *
+     * @param string $name Option name
+     * @param mixed $default Default value if option not found
+     * @return mixed Option value or default
+     */
+    function zed_get_option(string $name, mixed $default = ''): mixed
+    {
+        static $optionsCache = null;
+        
+        // Load all options on first call (single query)
+        if ($optionsCache === null) {
+            $optionsCache = [];
+            try {
+                $db = Database::getInstance();
+                $rows = $db->query("SELECT option_name, option_value FROM zed_options WHERE autoload = 1");
+                foreach ($rows as $row) {
+                    $optionsCache[$row['option_name']] = $row['option_value'];
+                }
+            } catch (Exception $e) {
+                // Silently fail - use defaults
+            }
+        }
+        
+        // Return cached value or fetch individually if not autoloaded
+        if (isset($optionsCache[$name])) {
+            return $optionsCache[$name];
+        }
+        
+        // Not in cache - try individual lookup (for non-autoload options)
         try {
             $db = Database::getInstance();
-            $rows = $db->query("SELECT option_name, option_value FROM zed_options WHERE autoload = 1");
-            foreach ($rows as $row) {
-                $optionsCache[$row['option_name']] = $row['option_value'];
+            $result = $db->queryOne(
+                "SELECT option_value FROM zed_options WHERE option_name = :name",
+                ['name' => $name]
+            );
+            if ($result) {
+                $optionsCache[$name] = $result['option_value'];
+                return $result['option_value'];
             }
         } catch (Exception $e) {
-            // Silently fail - use defaults
+            // Silently fail
         }
+        
+        return $default;
     }
-    
-    // Return cached value or fetch individually if not autoloaded
-    if (isset($optionsCache[$name])) {
-        return $optionsCache[$name];
-    }
-    
-    // Not in cache - try individual lookup (for non-autoload options)
-    try {
-        $db = Database::getInstance();
-        $result = $db->queryOne(
-            "SELECT option_value FROM zed_options WHERE option_name = :name",
-            ['name' => $name]
-        );
-        if ($result) {
-            $optionsCache[$name] = $result['option_value'];
-            return $result['option_value'];
-        }
-    } catch (Exception $e) {
-        // Silently fail
-    }
-    
-    return $default;
 }
 
 /**
@@ -1448,12 +1452,32 @@ HTML;
 // Route Listener - Runs with LOW priority (100) so it acts as a fallback
 // =============================================================================
 
+// =============================================================================
+// SINGLE SOURCE OF TRUTH - Frontend Controller Pattern
+// =============================================================================
+// 
+// This route_request listener implements a clean "Controller" architecture:
+// 1. THE BRAIN    - Identify what the user wants
+// 2. THE FETCH    - Get raw data into $zed_query (Single Source of Truth)
+// 3. THE PREPARE  - Standardize data into $post, $posts, $is_404, etc.
+// 4. THE HANDOFF  - Determine which theme template to load
+// 5. THE EXECUTE  - Include the template and exit
+//
+// Benefits:
+// - Themes receive standardized global variables; no direct DB access needed
+// - All routing logic is centralized here
+// - Template selection follows a consistent hierarchy
+// - Easy to extend for custom post types
+// =============================================================================
+
 Event::on('route_request', function (array $request): void {
     $uri = $request['uri'];
     
     // =========================================================================
-    // API: Contact Form Submission
+    // API ROUTES - Handle API endpoints before frontend routing
     // =========================================================================
+    
+    // Contact Form Submission API
     if ($uri === '/api/submit-contact' && $request['method'] === 'POST') {
         header('Content-Type: application/json');
         
@@ -1490,12 +1514,7 @@ Event::on('route_request', function (array $request): void {
                 ]
             );
             
-            // Redirect back with success (since it's a standard FORM POST, not AJAX in the template)
-            // Wait, the template uses standard <form>. So we should Redirect.
-            // But user might want JSON if they used JS.
-            // The template I wrote uses standard POST.
-            
-            // Detect if AJAX
+            // Detect if AJAX request
             $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
             
             if ($isAjax || isset($_GET['json'])) {
@@ -1503,16 +1522,13 @@ Event::on('route_request', function (array $request): void {
             } else {
                 // Redirect to referrer with success param
                 $referrer = $_SERVER['HTTP_REFERER'] ?? '/';
-                if (str_contains($referrer, '?')) {
-                    $referrer .= '&success=1';
-                } else {
-                    $referrer .= '?success=1';
-                }
+                $referrer .= str_contains($referrer, '?') ? '&success=1' : '?success=1';
                 header("Location: " . $referrer);
             }
             
         } catch (Exception $e) {
-             if ($isAjax || isset($_GET['json'])) {
+            $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
+            if ($isAjax || isset($_GET['json'])) {
                 echo json_encode(['success' => false, 'error' => 'Database error']);
             } else {
                 die("Error saving message: " . $e->getMessage());
@@ -1524,398 +1540,341 @@ Event::on('route_request', function (array $request): void {
     }
     
     // =========================================================================
-    // THEME CONFIGURATION
-    // =========================================================================
-    // =========================================================================
-    // ACTIVE THEME RESOLUTION
-    // Reads from database (set via Admin > Themes)
-    // =========================================================================
-    $theme = zed_get_option('active_theme', 'starter-theme');
-    
-    // Define theme path
-    $themesDir = __DIR__ . '/../themes';
-    $themePath = $themesDir . '/' . $theme;
-    
-    // Fallback: if theme directory doesn't exist, use starter-theme
-    if (!is_dir($themePath)) {
-        $theme = 'starter-theme';
-        $themePath = $themesDir . '/' . $theme;
-    }
-    
-    // Make theme name globally accessible for other addons
-    if (!defined('ZED_ACTIVE_THEME')) {
-        define('ZED_ACTIVE_THEME', $theme);
-    }
-    
-    // =========================================================================
-    // ROUTE FILTERING
+    // ROUTE FILTERING - Skip admin routes and already-handled requests
     // =========================================================================
     
-    // Skip admin routes - let admin_addon handle those
     if (str_starts_with($uri, '/admin')) {
-        return;
+        return; // Let admin_addon handle these
     }
     
-    // Skip if already handled
     if (Router::isHandled()) {
         return;
     }
     
-    // Extract slug from URI (remove leading slash)
-    $slug = ltrim($uri, '/');
-    
+
     // =========================================================================
-    // SMART ROUTING - Respects Unified Settings
+    // 1. THE BRAIN — Identify What User Wants
     // =========================================================================
     
-    // Get homepage configuration from settings
+    $slug = trim($uri, '/');
+    $isHome = ($slug === '');
+    
+    // Get core settings
     $homepage_mode = zed_get_option('homepage_mode', 'latest_posts');
     $page_on_front = (int)zed_get_option('page_on_front', '0');
     $blog_slug = zed_get_option('blog_slug', 'blog');
     $posts_per_page = zed_get_posts_per_page();
+    $page_num = max(1, (int)($_GET['page'] ?? 1));
+    $offset = ($page_num - 1) * $posts_per_page;
     
     // =========================================================================
-    // HOMEPAGE HANDLER (empty slug = /)
-    // =========================================================================
-    if (empty($slug)) {
-        $base_url = Router::getBasePath();
-        
-        // Case A: Static Page Homepage
-        if ($homepage_mode === 'static_page' && $page_on_front > 0) {
-            $post = zed_get_page_by_id($page_on_front);
-            
-            if ($post) {
-                // Parse content
-                $data = is_string($post['data']) ? json_decode($post['data'], true) : $post['data'];
-                $blocks = $data['content'] ?? [];
-                $htmlContent = render_blocks($blocks);
-                
-                // Try page.php first, then single.php, then fallback
-                $pageTemplate = $themePath . '/page.php';
-                $singleTemplate = $themePath . '/single.php';
-                
-                if (file_exists($pageTemplate)) {
-                    ob_start();
-                    include $pageTemplate;
-                    $html = ob_get_clean();
-                } elseif (file_exists($singleTemplate)) {
-                    ob_start();
-                    include $singleTemplate;
-                    $html = ob_get_clean();
-                } else {
-                    // Fallback render
-                    $html = render_page($post, $htmlContent);
-                }
-                
-                Router::setHandled($html);
-                return;
-            }
-        }
-        
-        // Case B: Latest Posts (Default)
-        // Fetch latest posts for the homepage
-        $page_num = max(1, (int)($_GET['page'] ?? 1));
-        $offset = ($page_num - 1) * $posts_per_page;
-        $posts = zed_get_latest_posts($posts_per_page, $offset);
-        $total_posts = zed_count_published_posts();
-        $total_pages = max(1, ceil($total_posts / $posts_per_page));
-        
-        // Theme variables for index.php
-        $is_home = true;
-        $is_blog = true;
-        
-        $homepageTemplate = $themePath . '/index.php';
-        
-        if (file_exists($homepageTemplate)) {
-            ob_start();
-            include $homepageTemplate;
-            $html = ob_get_clean();
-            Router::setHandled($html);
-            return;
-        }
-        
-        // Fallback: Let it fall through
-        return;
-    }
-    
-    // =========================================================================
-    // SMART ARCHIVE HANDLER
-    // Automatically handles archive pages for ANY registered post type
-    // Checks $ZED_POST_TYPES registry to detect CPT slugs
+    // 2. THE FETCH — Get Raw Data into $zed_query (Single Source of Truth)
     // =========================================================================
     
-    // Parse URL segments for context-aware routing
-    $segments = array_filter(explode('/', $slug));
-    $firstSegment = $segments[0] ?? '';
-    $secondSegment = $segments[1] ?? null;
+    global $zed_query;
+    $zed_query = [
+        'type' => null,       // 'home', 'single', 'page', 'archive', 'preview', '404'
+        'object' => null,     // Single post/page data
+        'posts' => [],        // Array of posts for archives/home
+        'post_type' => null,  // CPT slug if applicable
+        'archive_title' => null,
+        'pagination' => [
+            'current_page' => $page_num,
+            'per_page' => $posts_per_page,
+            'total_posts' => 0,
+            'total_pages' => 1,
+        ],
+    ];
     
-    // Get all registered post types
-    $postTypes = zed_get_post_types(true);
-    
-    // Check if first segment matches a post type (or its plural slug)
-    $matchedType = null;
-    $matchedTypeConfig = null;
-    
-    foreach ($postTypes as $typeSlug => $typeConfig) {
-        // Match by type slug directly (e.g., /portfolio)
-        if ($firstSegment === $typeSlug) {
-            $matchedType = $typeSlug;
-            $matchedTypeConfig = $typeConfig;
-            break;
-        }
-        
-        // Also match by plural label slug (e.g., /portfolios → portfolio)
-        $pluralSlug = strtolower(str_replace(' ', '-', $typeConfig['label'] ?? ''));
-        if ($firstSegment === $pluralSlug) {
-            $matchedType = $typeSlug;
-            $matchedTypeConfig = $typeConfig;
-            break;
-        }
-    }
-    
-    // Special case: /blog always maps to 'post' type
-    if ($firstSegment === 'blog' || ($homepage_mode === 'static_page' && $firstSegment === $blog_slug)) {
-        $matchedType = 'post';
-        $matchedTypeConfig = $postTypes['post'] ?? ['label' => 'Posts', 'singular' => 'Post'];
-    }
-    
-    // If matched a CPT...
-    if ($matchedType !== null) {
-        $base_url = Router::getBasePath();
-        
-        // ─────────────────────────────────────────────────────────────────────
-        // CASE 1: Nested slug like /portfolio/my-project → Single item
-        // ─────────────────────────────────────────────────────────────────────
-        if ($secondSegment !== null) {
-            try {
-                $db = Database::getInstance();
-                $post = $db->queryOne(
-                    "SELECT * FROM zed_content 
-                     WHERE slug = :slug 
-                       AND type = :type
-                       AND JSON_UNQUOTE(JSON_EXTRACT(data, '$.status')) = 'published'
-                     LIMIT 1",
-                    ['slug' => $secondSegment, 'type' => $matchedType]
-                );
-                
-                if ($post) {
-                    // Parse content
-                    $data = is_string($post['data']) ? json_decode($post['data'], true) : $post['data'];
-                    $blocks = $data['content'] ?? [];
-                    $htmlContent = render_blocks($blocks);
-                    
-                    // Process shortcodes
-                    if (function_exists('zed_do_shortcodes')) {
-                        $htmlContent = zed_do_shortcodes($htmlContent);
-                    }
-                    
-                    // Template data
-                    $post_type = $matchedType;
-                    $post_type_label = $matchedTypeConfig['singular'] ?? ucfirst($matchedType);
-                    
-                    // Single Template Hierarchy: single-{type}.php → single.php → index.php
-                    $template = zed_resolve_template_hierarchy($themePath, 'single', $matchedType);
-                    
-                    ob_start();
-                    include $template;
-                    $html = ob_get_clean();
-                    
-                    Router::setHandled($html);
-                    return;
-                }
-            } catch (Exception $e) {
-                // Fall through
-            }
-            
-            // Not found - will 404
-            return;
-        }
-        
-        // ─────────────────────────────────────────────────────────────────────
-        // CASE 2: Archive listing like /portfolio → List all portfolio items
-        // ─────────────────────────────────────────────────────────────────────
-        
-        // Pagination
-        $page_num = max(1, (int)($_GET['page'] ?? 1));
-        $offset = ($page_num - 1) * $posts_per_page;
-        
-        try {
-            $db = Database::getInstance();
-            
-            // Fetch items of this type
-            $posts = $db->query(
-                "SELECT * FROM zed_content 
-                 WHERE type = :type 
-                   AND JSON_UNQUOTE(JSON_EXTRACT(data, '$.status')) = 'published'
-                 ORDER BY created_at DESC
-                 LIMIT :limit OFFSET :offset",
-                ['type' => $matchedType, 'limit' => $posts_per_page, 'offset' => $offset]
-            );
-            
-            // Count total
-            $total_results = (int)$db->queryValue(
-                "SELECT COUNT(*) FROM zed_content 
-                 WHERE type = :type 
-                   AND JSON_UNQUOTE(JSON_EXTRACT(data, '$.status')) = 'published'",
-                ['type' => $matchedType]
-            );
-            
-            $total_pages = max(1, ceil($total_results / $posts_per_page));
-            
-        } catch (Exception $e) {
-            $posts = [];
-            $total_results = 0;
-            $total_pages = 1;
-        }
-        
-        // Template data injection
-        $post_type = $matchedType;
-        $post_type_label = $matchedTypeConfig['label'] ?? ucfirst($matchedType) . 's';
-        $post_type_singular = $matchedTypeConfig['singular'] ?? ucfirst($matchedType);
-        $archive_title = $post_type_label;
-        $is_archive = true;
-        $is_blog = ($matchedType === 'post');
-        
-        // Archive Template Hierarchy: archive-{type}.php → archive.php → index.php
-        $template = zed_resolve_template_hierarchy($themePath, 'archive', $matchedType);
-        
-        ob_start();
-        include $template;
-        $html = ob_get_clean();
-        
-        Router::setHandled($html);
-        return;
-    }
-    
-    // Handle preview route: /preview/{id}
-    if (str_starts_with($slug, 'preview/')) {
-        $id = substr($slug, 8); // Remove 'preview/' prefix
-        if (!is_numeric($id)) {
-            return;
-        }
-        
-        // Preview requires authentication
-        if (!Auth::check()) {
-            Router::redirect('/admin/login?redirect=' . urlencode($uri));
-        }
-        
-        try {
-            $db = Database::getInstance();
-            $post = $db->queryOne(
-                "SELECT * FROM zed_content WHERE id = :id LIMIT 1",
-                ['id' => (int)$id]
-            );
-            
-            if ($post) {
-                // Decode content
-                $data = is_string($post['data']) ? json_decode($post['data'], true) : $post['data'];
-                $blocks = $data['content'] ?? [];
-                
-                // Render
-                $renderedContent = render_blocks($blocks);
-                
-                // Process shortcodes
-                if (function_exists('zed_do_shortcodes')) {
-                    $renderedContent = zed_do_shortcodes($renderedContent);
-                }
-                
-                $html = render_page($post, $renderedContent);
-                
-                Router::setHandled($html);
-                return;
-            }
-        } catch (Exception $e) {
-            // Fall through to 404
-        }
-        
-        return;
-    }
-    
-    // =========================================================================
-    // SINGLE CONTENT HANDLER (/{slug})
-    // =========================================================================
-    
-    // Try to find content by slug
     try {
         $db = Database::getInstance();
         
-        // Only show published content on frontend
-        $post = $db->queryOne(
-            "SELECT * FROM zed_content 
-             WHERE slug = :slug 
-               AND JSON_UNQUOTE(JSON_EXTRACT(data, '$.status')) = 'published'
-             LIMIT 1",
-            ['slug' => $slug]
-        );
-        
-        if ($post) {
-            // ─────────────────────────────────────────────────────────────────
-            // STEP 1: Parse the post data and convert JSON blocks to HTML
-            // ─────────────────────────────────────────────────────────────────
-            $data = is_string($post['data']) ? json_decode($post['data'], true) : $post['data'];
-            $blocks = $data['content'] ?? [];
+        // ─────────────────────────────────────────────────────────────────────
+        // CASE: Homepage (/)
+        // ─────────────────────────────────────────────────────────────────────
+        if ($isHome) {
+            if ($homepage_mode === 'static_page' && $page_on_front > 0) {
+                // Static page as homepage
+                $zed_query['object'] = zed_get_page_by_id($page_on_front);
+                $zed_query['type'] = $zed_query['object'] ? 'page' : '404';
+            } else {
+                // Latest posts as homepage
+                $zed_query['posts'] = zed_get_latest_posts($posts_per_page, $offset);
+                $zed_query['pagination']['total_posts'] = zed_count_published_posts();
+                $zed_query['pagination']['total_pages'] = max(1, ceil($zed_query['pagination']['total_posts'] / $posts_per_page));
+                $zed_query['type'] = 'home';
+                $zed_query['post_type'] = 'post';
+            }
+        }
+        // ─────────────────────────────────────────────────────────────────────
+        // CASE: Preview Route (/preview/{id})
+        // ─────────────────────────────────────────────────────────────────────
+        elseif (str_starts_with($slug, 'preview/')) {
+            $id = (int)substr($slug, 8);
             
-            // Render BlockNote JSON to HTML
-            $htmlContent = render_blocks($blocks);
-            
-            // Process shortcodes in the rendered content
-            if (function_exists('zed_do_shortcodes')) {
-                $htmlContent = zed_do_shortcodes($htmlContent);
+            // Preview requires authentication
+            if (!Auth::check()) {
+                Router::redirect('/admin/login?redirect=' . urlencode($uri));
+                return;
             }
             
-            // Make base_url available to templates
-            $base_url = Router::getBasePath();
+            $zed_query['object'] = $db->queryOne(
+                "SELECT * FROM zed_content WHERE id = :id LIMIT 1",
+                ['id' => $id]
+            );
+            $zed_query['type'] = $zed_query['object'] ? 'preview' : '404';
+        }
+        // ─────────────────────────────────────────────────────────────────────
+        // CASE: Archive or Single by Post Type (/{type} or /{type}/{slug})
+        // ─────────────────────────────────────────────────────────────────────
+        else {
+            $segments = array_values(array_filter(explode('/', $slug)));
+            $firstSegment = $segments[0] ?? '';
+            $secondSegment = $segments[1] ?? null;
             
-            // ─────────────────────────────────────────────────────────────────
-            // THEME HOOKS: Before/After Content
-            // Allow themes to inject dynamic elements (author bios, related posts)
-            // ─────────────────────────────────────────────────────────────────
-            ob_start();
-            Event::trigger('zed_before_content', $post, $data);
-            $beforeContent = ob_get_clean();
+            // Get all registered post types
+            $postTypes = zed_get_post_types(true);
+            $matchedType = null;
+            $matchedTypeConfig = null;
             
-            ob_start();
-            Event::trigger('zed_after_content', $post, $data);
-            $afterContent = ob_get_clean();
+            // Check if first segment matches a registered post type
+            foreach ($postTypes as $typeSlug => $typeConfig) {
+                if ($firstSegment === $typeSlug) {
+                    $matchedType = $typeSlug;
+                    $matchedTypeConfig = $typeConfig;
+                    break;
+                }
+                // Also match by plural label slug (e.g., /portfolios → portfolio)
+                $pluralSlug = strtolower(str_replace(' ', '-', $typeConfig['label'] ?? ''));
+                if ($firstSegment === $pluralSlug) {
+                    $matchedType = $typeSlug;
+                    $matchedTypeConfig = $typeConfig;
+                    break;
+                }
+            }
             
-            // ─────────────────────────────────────────────────────────────────
-            // STEP 2: Resolve Template
-            // ─────────────────────────────────────────────────────────────────
-            // Check for custom template
-            $templateName = $data['template'] ?? 'default';
-            $templateFile = null;
+            // Special case: /blog always maps to 'post' type
+            if ($firstSegment === 'blog' || ($homepage_mode === 'static_page' && $firstSegment === $blog_slug)) {
+                $matchedType = 'post';
+                $matchedTypeConfig = $postTypes['post'] ?? ['label' => 'Posts', 'singular' => 'Post'];
+            }
             
-            if ($templateName !== 'default') {
-                // First: Let addons provide the template (Template Library, etc.)
-                // The filter receives: template path (or null), template name, post data
-                $addonTemplate = Event::filter('zed_resolve_template', null, $templateName, $post);
+            if ($matchedType !== null) {
+                $zed_query['post_type'] = $matchedType;
                 
-                if ($addonTemplate && file_exists($addonTemplate)) {
-                    $templateFile = $addonTemplate;
+                if ($secondSegment !== null) {
+                    // Single item: /{type}/{slug}
+                    $zed_query['object'] = $db->queryOne(
+                        "SELECT * FROM zed_content 
+                         WHERE slug = :slug AND type = :type
+                           AND JSON_UNQUOTE(JSON_EXTRACT(data, '$.status')) = 'published'
+                         LIMIT 1",
+                        ['slug' => $secondSegment, 'type' => $matchedType]
+                    );
+                    $zed_query['type'] = $zed_query['object'] ? 'single' : '404';
+                } else {
+                    // Archive listing: /{type}
+                    $zed_query['posts'] = $db->query(
+                        "SELECT * FROM zed_content 
+                         WHERE type = :type 
+                           AND JSON_UNQUOTE(JSON_EXTRACT(data, '$.status')) = 'published'
+                         ORDER BY created_at DESC
+                         LIMIT :limit OFFSET :offset",
+                        ['type' => $matchedType, 'limit' => $posts_per_page, 'offset' => $offset]
+                    ) ?: [];
+                    
+                    $zed_query['pagination']['total_posts'] = (int)$db->queryValue(
+                        "SELECT COUNT(*) FROM zed_content 
+                         WHERE type = :type 
+                           AND JSON_UNQUOTE(JSON_EXTRACT(data, '$.status')) = 'published'",
+                        ['type' => $matchedType]
+                    );
+                    $zed_query['pagination']['total_pages'] = max(1, ceil($zed_query['pagination']['total_posts'] / $posts_per_page));
+                    $zed_query['archive_title'] = $matchedTypeConfig['label'] ?? ucfirst($matchedType) . 's';
+                    $zed_query['type'] = 'archive';
                 }
-                // Second: Check theme's templates folder
-                elseif (file_exists($themePath . '/templates/' . $templateName . '.php')) {
-                    $templateFile = $themePath . '/templates/' . $templateName . '.php';
-                }
-            }
-            
-            // Fallback to single.php if no custom template found
-            if (!$templateFile) {
-                $templateFile = $themePath . '/single.php';
-            }
-            
-            if (file_exists($templateFile)) {
-                // Template found - include it
-                // Variables available: $post, $htmlContent, $base_url, $beforeContent, $afterContent, $data
-                ob_start();
-                include $templateFile;
-                $html = ob_get_clean();
             } else {
                 // ─────────────────────────────────────────────────────────────
-                // FALLBACK: No theme template - echo raw content safely
+                // CASE: Single Content by Slug (/{slug})
                 // ─────────────────────────────────────────────────────────────
-                $title = htmlspecialchars($post['title'] ?? 'Untitled');
-                $html = <<<HTML
+                $zed_query['object'] = zed_get_post_by_slug($slug);
+                
+                if ($zed_query['object']) {
+                    // Verify it's published
+                    $objData = is_string($zed_query['object']['data'] ?? null) 
+                        ? json_decode($zed_query['object']['data'], true) 
+                        : ($zed_query['object']['data'] ?? []);
+                    
+                    if (($objData['status'] ?? '') !== 'published') {
+                        $zed_query['object'] = null;
+                        $zed_query['type'] = '404';
+                    } else {
+                        $zed_query['type'] = ($zed_query['object']['type'] ?? 'post') === 'page' ? 'page' : 'single';
+                        $zed_query['post_type'] = $zed_query['object']['type'] ?? 'post';
+                    }
+                } else {
+                    $zed_query['type'] = '404';
+                }
+            }
+        }
+        
+    } catch (Exception $e) {
+        error_log("Frontend addon fetch error: " . $e->getMessage());
+        $zed_query['type'] = '404';
+    }
+    
+    // =========================================================================
+    // 3. THE PREPARATION — Standardize Data for Themes
+    // =========================================================================
+    // These globals ensure every theme works exactly the same way
+    
+    global $post, $posts, $is_404, $is_home, $is_archive, $is_single, $is_page;
+    global $htmlContent, $base_url, $page_num, $total_pages, $total_posts;
+    global $post_type, $post_type_label, $archive_title;
+    global $beforeContent, $afterContent;
+    
+    // Core globals
+    $post = $zed_query['object'];
+    $posts = $zed_query['posts'];
+    $is_404 = ($zed_query['type'] === '404');
+    $is_home = ($zed_query['type'] === 'home');
+    $is_archive = ($zed_query['type'] === 'archive');
+    $is_single = ($zed_query['type'] === 'single' || $zed_query['type'] === 'preview');
+    $is_page = ($zed_query['type'] === 'page');
+    
+    // Pagination globals
+    $page_num = $zed_query['pagination']['current_page'];
+    $total_pages = $zed_query['pagination']['total_pages'];
+    $total_posts = $zed_query['pagination']['total_posts'];
+    
+    // Post type globals
+    $post_type = $zed_query['post_type'];
+    $archive_title = $zed_query['archive_title'];
+    $post_type_config = $post_type ? (zed_get_post_type($post_type) ?? []) : [];
+    $post_type_label = $post_type_config['label'] ?? ucfirst($post_type ?? 'Posts');
+    
+    // Base URL
+    $base_url = Router::getBasePath();
+    
+    // Process content for single items
+    $htmlContent = '';
+    $data = [];
+    
+    if ($post) {
+        $data = is_string($post['data'] ?? null) ? json_decode($post['data'], true) : ($post['data'] ?? []);
+        $blocks = $data['content'] ?? [];
+        $htmlContent = render_blocks($blocks);
+
+        
+        // Process shortcodes
+        if (function_exists('zed_do_shortcodes')) {
+            $htmlContent = zed_do_shortcodes($htmlContent);
+        }
+        
+        // Before/After content hooks
+        ob_start();
+        Event::trigger('zed_before_content', $post, $data);
+        $beforeContent = ob_get_clean();
+        
+        ob_start();
+        Event::trigger('zed_after_content', $post, $data);
+        $afterContent = ob_get_clean();
+    }
+    
+    // =========================================================================
+    // 4. THE HANDOFF — Determine Which Template to Load
+    // =========================================================================
+    
+    $theme = zed_get_option('active_theme', 'starter-theme');
+    $themePath = __DIR__ . '/../themes/' . $theme;
+    
+    // Fallback if theme doesn't exist
+    if (!is_dir($themePath)) {
+        $theme = 'starter-theme';
+        $themePath = __DIR__ . '/../themes/' . $theme;
+    }
+    
+    // Define theme constant if not already defined
+    if (!defined('ZED_ACTIVE_THEME')) {
+        define('ZED_ACTIVE_THEME', $theme);
+    }
+    
+    // Template selection based on query type
+    $template = 'index.php'; // Ultimate fallback
+    
+    switch ($zed_query['type']) {
+        case '404':
+            $template = file_exists("$themePath/404.php") ? '404.php' : 'index.php';
+            break;
+            
+        case 'home':
+            $template = file_exists("$themePath/home.php") ? 'home.php' : 'index.php';
+            break;
+            
+        case 'page':
+            // Check for custom page template first
+            $customTemplate = $data['template'] ?? 'default';
+            if ($customTemplate !== 'default' && file_exists("$themePath/templates/{$customTemplate}.php")) {
+                $template = "templates/{$customTemplate}.php";
+            } elseif (file_exists("$themePath/page.php")) {
+                $template = 'page.php';
+            } elseif (file_exists("$themePath/single.php")) {
+                $template = 'single.php';
+            }
+            break;
+            
+        case 'single':
+        case 'preview':
+            // Check for custom template assignment
+            $customTemplate = $data['template'] ?? 'default';
+            
+            if ($customTemplate !== 'default') {
+                // Allow addons to provide template (e.g., Template Library)
+                $addonTemplate = Event::filter('zed_resolve_template', null, $customTemplate, $post);
+                
+                if ($addonTemplate && file_exists($addonTemplate)) {
+                    $template = $addonTemplate; // Full path from addon
+                } elseif (file_exists("$themePath/templates/{$customTemplate}.php")) {
+                    $template = "templates/{$customTemplate}.php";
+                }
+            }
+            
+            // Fallback: Template hierarchy for post types
+            if ($template === 'index.php') {
+                $template = zed_resolve_template_hierarchy($themePath, 'single', $post_type ?? 'post');
+                $template = str_replace($themePath . '/', '', $template); // Make relative
+            }
+            break;
+            
+        case 'archive':
+            // Archive Template Hierarchy: archive-{type}.php → archive.php → index.php
+            $resolved = zed_resolve_template_hierarchy($themePath, 'archive', $post_type ?? 'post');
+            $template = str_replace($themePath . '/', '', $resolved);
+            break;
+    }
+    
+    // Ensure template path is complete
+    $templatePath = str_starts_with($template, '/') ? $template : "$themePath/$template";
+    
+    // Fallback if specific template doesn't exist
+    if (!file_exists($templatePath)) {
+        $templatePath = "$themePath/index.php";
+    }
+    
+    // =========================================================================
+    // 5. EXECUTE — Load Template and Exit
+    // =========================================================================
+    
+    if (file_exists($templatePath)) {
+        ob_start();
+        include $templatePath;
+        $html = ob_get_clean();
+        Router::setHandled($html);
+    } else {
+
+        // Absolute last resort: Render basic fallback HTML
+        $title = htmlspecialchars($post['title'] ?? 'Zed CMS');
+        $html = <<<HTML
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1936,22 +1895,15 @@ Event::on('route_request', function (array $request): void {
 </body>
 </html>
 HTML;
-            }
-            
-            // Output and mark as handled
-            // Output and mark as handled
-            Router::setHandled($html);
-            return;
-        }
-        
-    } catch (Exception $e) {
-        // Database error - let it fall through to 404
-        error_log("Frontend addon error: " . $e->getMessage());
+        Router::setHandled($html);
     }
     
-    // If we get here, slug wasn't found - let Router handle 404
+    // NOTE: Do NOT call exit here!
+    // Router::setHandled() stores the response, and App::run() will echo it.
+    // Calling exit prematurely would prevent the response from being output.
     
 }, 100); // Priority 100 = runs AFTER admin_addon (priority 10)
+
 
 // =============================================================================
 // SEO Head Event - Inject metadata from settings

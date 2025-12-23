@@ -82,6 +82,13 @@ $nav_items = zed_get_admin_menu_items();
             to { opacity: 1; transform: translateY(0); }
         }
     </style>
+    
+    <!-- Global CSRF Nonce for AJAX calls -->
+    <script>
+        window.ZED_NONCE = "<?= function_exists('zed_create_nonce') ? zed_create_nonce('zed_admin_action') : '' ?>";
+        window.ZED_BASE_URL = "<?= $base_url ?>";
+    </script>
+    
     <?php \Core\Event::trigger('zed_admin_head'); ?>
 </head>
 <body class="font-body bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 h-screen flex overflow-hidden transition-colors duration-200">

@@ -159,7 +159,10 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 const response = await fetch(`${baseUrl}/admin/api/activate-theme`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-ZED-NONCE': window.ZED_NONCE || ''
+                    },
                     body: JSON.stringify({ theme: folder })
                 });
                 

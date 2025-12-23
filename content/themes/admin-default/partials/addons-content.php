@@ -274,7 +274,10 @@ document.addEventListener('DOMContentLoaded', function() {
             try {
                 const response = await fetch(`${baseUrl}/admin/api/toggle-addon`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-ZED-NONCE': window.ZED_NONCE || ''
+                    },
                     body: JSON.stringify({ filename })
                 });
                 

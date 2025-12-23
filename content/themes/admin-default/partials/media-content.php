@@ -859,7 +859,10 @@ function formatBytes($bytes, $precision = 1) {
                 
                 const response = await fetch('<?php echo \Core\Router::url('/admin/api/batch-delete-media'); ?>', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-ZED-NONCE': window.ZED_NONCE || ''
+                    },
                     body: JSON.stringify({ files: files })
                 });
                 

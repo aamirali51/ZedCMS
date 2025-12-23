@@ -812,7 +812,10 @@ $debug_mode = $options['debug_mode'] ?? '0';
         try {
             const response = await fetch(API_SAVE, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'X-ZED-NONCE': window.ZED_NONCE || ''
+                },
                 body: JSON.stringify(data)
             });
             

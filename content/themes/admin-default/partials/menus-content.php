@@ -439,7 +439,10 @@ async function saveMenu(isAutoSave = false) {
     try {
         const response = await fetch('<?= $base_url ?>/admin/api/save-menu', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-ZED-NONCE': window.ZED_NONCE || ''
+            },
             body: JSON.stringify({
                 menu_id: menuId,
                 name: menuName,
@@ -473,7 +476,10 @@ async function deleteMenu() {
     try {
         const response = await fetch('<?= $base_url ?>/admin/api/delete-menu', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'X-ZED-NONCE': window.ZED_NONCE || ''
+            },
             body: JSON.stringify({ id: menuId })
         });
         

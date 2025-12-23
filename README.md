@@ -20,8 +20,9 @@ Stop fighting with legacy codebases.
 | **Architecture** | **Event-Driven Micro-Kernel** | Monolithic Procedure Wrapper |
 | **Routing** | **Decentralized (Event Listeners)** | Static Tables / Regex Hell |
 | **Database** | **Direct PDO (JSON-Optimized)** | heavy ORM / EAV Nightmares |
-| **Media** | **Native WebP Pipeline** | Requires 3rd Party Plugins |
+| **Media** | **Native WebP Pipeline + Batch Ops** | Requires 3rd Party Plugins |
 | **Editor** | **React Block Editor (JSON)** | HTML WYSIWYG (Tag Soup) |
+| **Dark Mode** | **Built-in (localStorage)** | Requires Plugin |
 | **Load Time** | **< 20ms Core Boot** | 200ms+ Core Boot |
 
 ---
@@ -74,6 +75,15 @@ Role-Based Access Control is baked into the core.
 ### 📚 Integrated Wiki
 Documentation shouldn't be a browser tab away. Zed ships with a **Native Markdown Wiki** inside the Admin Panel that reads directly from your `content/docs/` folder.
 
+### 🌙 Professional Dark Mode (v2.5.0)
+*   **Toggle Button:** Sun/moon icon in admin header.
+*   **Persistence:** Saved to localStorage, persists across sessions.
+*   **FOUC Prevention:** Theme loads before content renders.
+
+### 📦 Batch Operations (v2.5.0)
+*   **Content:** Select all checkbox, individual row checkboxes, bulk delete.
+*   **Media:** Card checkboxes, selection counter, multi-file delete.
+
 ---
 
 ## 🚀 Quick Start
@@ -110,9 +120,9 @@ Documentation shouldn't be a browser tab away. Zed ships with a **Native Markdow
 Zed is young, fast, and opinionated. We are looking for **Architects**, not just coders.
 
 ### We need help with:
-*   **Theme API:** Building more robust helper functions.
-*   **Addon Manager:** Building a UI to toggle addons (currently file-based).
+*   **Frontend Themes:** Building more beautiful themes with the Theme API.
 *   **Cache Driver:** Redis integration for the `Core\Cache` layer.
+*   **Real-Time Charts:** Connecting dashboard charts to actual analytics data.
 
 **Fork it. Break it. Fix it.**
 

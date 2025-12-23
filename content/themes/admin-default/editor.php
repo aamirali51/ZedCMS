@@ -1,28 +1,29 @@
 <?php
 /**
- * Zed CMS Editor (React + Tiptap Version)
+ * Zed CMS Editor v4.2
  * 
- * Uses the built frontend bundle from _frontend/
+ * Matches admin-default theme colors and styling
+ * Supports dark mode
  */
 
 use Core\Auth;
 use Core\Database;
 use Core\Router;
+use Core\Event;
 
-// Check authentication
 if (!Auth::check()) {
     Router::redirect('/admin/login');
 }
 
-// Get base URL for links
 $base_url = Router::getBasePath();
 
-// Initialize variables
-// 1. Check if we are editing an existing post
+// Load post data
 $postId = $_GET['id'] ?? null;
 $post = null;
-$jsonContent = 'null'; // Default for new post
-$featuredImageUrl = ''; // Initialize featured image URL
+$data = [];
+$postStatus = 'draft';
+$postExcerpt = '';
+$featuredImageUrl = '';
 
 if ($postId) {
     try {
@@ -30,508 +31,718 @@ if ($postId) {
         $post = $db->queryOne("SELECT * FROM zed_content WHERE id = :id", ['id' => $postId]);
         
         if ($post) {
-            // Parse the JSON data column
             $data = is_string($post['data']) ? json_decode($post['data'], true) : ($post['data'] ?? []);
             if (!is_array($data)) $data = [];
             
-            // Load the content for the JS Editor
-            $jsonContent = isset($data['content']) ? json_encode($data['content']) : '[]';
-            
-            // Extract metadata from parsed data
             $featuredImageUrl = $data['featured_image'] ?? '';
             $postStatus = $data['status'] ?? 'draft';
             $postExcerpt = $data['excerpt'] ?? '';
-        } else {
-            $data = [];
-            $postStatus = 'draft';
-            $postExcerpt = '';
         }
     } catch (Exception $e) {
         $post = null;
-        $data = [];
-        $postStatus = 'draft';
-        $postExcerpt = '';
     }
-} else {
-    $data = [];
-    $postStatus = 'draft';
-    $postExcerpt = '';
 }
 
-// BlockNote requires a non-empty array with at least one valid block
-// Provide a default empty paragraph block if no content exists
-$defaultBlock = [
-    [
-        'id' => uniqid('block_'),
-        'type' => 'paragraph',
-        'props' => [
-            'textColor' => 'default',
-            'backgroundColor' => 'default',
-            'textAlignment' => 'left',
-        ],
-        'content' => [],
-        'children' => [],
-    ]
+// Editor content
+$jsonContent = isset($data['content']) ? json_encode($data['content']) : '[]';
+$defaultBlock = [[
+    'id' => uniqid('block_'),
+    'type' => 'paragraph',
+    'props' => ['textColor' => 'default', 'backgroundColor' => 'default', 'textAlignment' => 'left'],
+    'content' => [],
+    'children' => [],
+]];
+
+$decoded = json_decode($jsonContent, true);
+$initialDataSafe = (!is_array($decoded) || empty($decoded)) ? json_encode($defaultBlock) : $jsonContent;
+
+$currentType = $post['type'] ?? ($_GET['type'] ?? 'post');
+
+global $ZED_POST_TYPES;
+$types = !empty($ZED_POST_TYPES) ? $ZED_POST_TYPES : [
+    'post' => ['label' => 'Post'],
+    'page' => ['label' => 'Page']
 ];
-
-// Safe JSON for JS - ensure it has at least one block for BlockNote
-if (!isset($jsonContent) || $jsonContent === 'null' || $jsonContent === '[]' || empty($jsonContent)) {
-    $initialDataSafe = json_encode($defaultBlock);
-} else {
-    // Validate that content is a non-empty array
-    $decoded = json_decode($jsonContent, true);
-    if (!is_array($decoded) || empty($decoded)) {
-        $initialDataSafe = json_encode($defaultBlock);
-    } else {
-        $initialDataSafe = $jsonContent;
-    }
-}
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title><?= $post ? htmlspecialchars($post['title']) : 'New Entry' ?> — Zero CMS</title>
+    <title><?= $post ? htmlspecialchars($post['title']) : 'New Entry' ?> — Zed CMS</title>
     
-    <!-- Fonts -->
+    <!-- Dark Mode (prevent flash) -->
+    <script>
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        }
+    </script>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com"/>
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-    <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
     
-    <!-- Tailwind -->
     <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
     <script>
         tailwind.config = {
+            darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        primary: "#256af4",
-                        success: "#10b981",
+                        primary: '#6366f1',
+                        'primary-hover': '#4f46e5',
                     },
-                    fontFamily: {
-                        sans: ["Inter", "sans-serif"],
-                        serif: ["Lora", "Georgia", "serif"],
-                    },
+                    fontFamily: { sans: ["Inter", "system-ui", "sans-serif"] },
                 },
             },
         }
     </script>
     
-    <!-- BlockNote/Mantine Styles (from Vite build) -->
+    <script>
+        window.ZED_NONCE = "<?= function_exists('zed_create_nonce') ? zed_create_nonce('zed_admin_action') : '' ?>";
+        window.ZED_BASE_URL = "<?= $base_url ?>";
+        window.ZED_SITE_NAME = "<?= htmlspecialchars(function_exists('zed_get_site_name') ? zed_get_site_name() : 'Zed CMS') ?>";
+    </script>
+    
+    <?php Event::trigger('zed_admin_head'); ?>
+    
     <link rel="stylesheet" href="<?= $base_url ?>/content/themes/admin-default/assets/js/assets/main.css">
+    
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Inter', system-ui, sans-serif; margin: 0; }
+        
+        /* Layout */
+        .editor-layout {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            height: 100vh;
+            transition: grid-template-columns 0.2s;
+        }
+        
+        .editor-layout.panel-hidden {
+            grid-template-columns: 1fr 0;
+        }
+        
+        .editor-layout.panel-hidden .sidebar {
+            display: none;
+        }
+        
+        /* Header */
+        .top-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 340px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 100;
+            transition: right 0.2s;
+        }
+        
+        .editor-layout.panel-hidden .top-bar {
+            right: 0;
+        }
+        
+        /* Main */
+        .main-area {
+            padding-top: 56px;
+            height: 100vh;
+            overflow-y: auto;
+        }
+        
+        /* ================================================
+           BlockNote Theme Variables - Match Admin Colors
+           ================================================ */
+        .bn-container[data-color-scheme="light"] {
+            --bn-colors-editor-text: #1e293b;
+            --bn-colors-editor-background: #ffffff;
+            --bn-colors-menu-text: #334155;
+            --bn-colors-menu-background: #ffffff;
+            --bn-colors-tooltip-text: #475569;
+            --bn-colors-tooltip-background: #f1f5f9;
+            --bn-colors-hovered-text: #1e293b;
+            --bn-colors-hovered-background: #f1f5f9;
+            --bn-colors-selected-text: #ffffff;
+            --bn-colors-selected-background: #6366f1;
+            --bn-colors-disabled-text: #94a3b8;
+            --bn-colors-disabled-background: #f1f5f9;
+            --bn-colors-shadow: #cbd5e1;
+            --bn-colors-border: #e2e8f0;
+            --bn-colors-side-menu: #94a3b8;
+            --bn-font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            --bn-border-radius: 8px;
+        }
+        
+        .bn-container[data-color-scheme="dark"] {
+            --bn-colors-editor-text: #e2e8f0;
+            --bn-colors-editor-background: #0f172a;
+            --bn-colors-menu-text: #e2e8f0;
+            --bn-colors-menu-background: #1e293b;
+            --bn-colors-tooltip-text: #cbd5e1;
+            --bn-colors-tooltip-background: #334155;
+            --bn-colors-hovered-text: #f1f5f9;
+            --bn-colors-hovered-background: #334155;
+            --bn-colors-selected-text: #ffffff;
+            --bn-colors-selected-background: #6366f1;
+            --bn-colors-disabled-text: #64748b;
+            --bn-colors-disabled-background: #1e293b;
+            --bn-colors-shadow: #0f172a;
+            --bn-colors-border: #334155;
+            --bn-colors-side-menu: #64748b;
+            --bn-font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            --bn-border-radius: 8px;
+        }
+        
+        /* BlockNote Editor Styling */
+        #tiptap-editor {
+            /* Dynamic width: viewport - sidebar width - some padding */
+            width: 100%;
+            max-width: calc(100vw - 340px);
+            min-height: calc(100vh - 56px);
+            padding: 40px 24px;
+            box-sizing: border-box;
+        }
+
+        
+        .editor-layout.panel-hidden #tiptap-editor {
+            max-width: 100vw;
+        }
+        
+        /* Override ALL BlockNote internal width constraints */
+        #tiptap-editor [class*="bn-"],
+        #tiptap-editor [data-node-type],
+        #tiptap-editor .ProseMirror,
+        #tiptap-editor > div,
+        #tiptap-editor > div > div {
+            max-width: 100% !important;
+            width: 100% !important;
+        }
+        
+        /* Content container - centered with max-width for readability */
+        #tiptap-editor .bn-block-group,
+        #tiptap-editor .bn-block-outer {
+            max-width: 100% !important;
+            width: 100% !important;
+        }
+        
+        /* Actual block content - limit width for readability */
+        #tiptap-editor .bn-block-content {
+            max-width: min(720px, calc(100vw - 340px - 48px)) !important;
+            margin: 0 auto;
+        }
+        
+        .editor-layout.panel-hidden #tiptap-editor .bn-block-content {
+            max-width: min(800px, calc(100vw - 100px)) !important;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .sidebar-tabs {
+            display: flex;
+            padding: 12px 16px;
+            gap: 6px;
+        }
+        
+        .sidebar-tab {
+            padding: 8px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 20px;
+        }
+        
+        .sidebar-content::-webkit-scrollbar { width: 4px; }
+        .sidebar-content::-webkit-scrollbar-thumb { border-radius: 2px; }
+        
+        /* Form */
+        .form-group { margin-bottom: 18px; }
+        
+        .form-label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            font-size: 13px;
+            border-radius: 8px;
+            transition: all 0.15s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+        }
+        
+        textarea.form-input { resize: vertical; min-height: 80px; }
+        
+        .form-hint {
+            font-size: 11px;
+            margin-top: 5px;
+        }
+        
+        /* Slug */
+        .slug-box {
+            display: flex;
+            align-items: center;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .slug-prefix {
+            padding: 10px 0 10px 12px;
+            font-size: 12px;
+        }
+        
+        .slug-input {
+            flex: 1;
+            padding: 10px 12px 10px 2px;
+            font-size: 13px;
+            border: none;
+            outline: none;
+            background: transparent;
+        }
+        
+        /* Upload */
+        .upload-area {
+            border: 2px dashed;
+            border-radius: 10px;
+            padding: 28px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        
+        .upload-area.has-image {
+            padding: 6px;
+            border-style: solid;
+        }
+        
+        .upload-area.has-image img {
+            width: 100%;
+            border-radius: 6px;
+        }
+        
+        /* Toggle */
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+        }
+        
+        .toggle-switch {
+            width: 44px;
+            height: 24px;
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.2s;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+        
+        .toggle-switch.on::after { transform: translateX(20px); }
+        
+        /* Categories */
+        .cat-list {
+            border-radius: 8px;
+            max-height: 160px;
+            overflow-y: auto;
+        }
+        
+        .cat-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background 0.1s;
+        }
+        
+        /* Collapsible */
+        .collapse-btn {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 10px 0;
+            background: none;
+            border: none;
+            cursor: pointer;
+            text-align: left;
+        }
+        
+        .collapse-btn .title { font-size: 13px; font-weight: 600; }
+        .collapse-btn .icon { font-size: 20px; transition: transform 0.2s; }
+        .collapse-btn.open .icon { transform: rotate(180deg); }
+        .collapse-body { display: none; padding-bottom: 12px; }
+        .collapse-body.open { display: block; }
+        
+        /* SEO Preview */
+        .seo-box {
+            border-radius: 8px;
+            padding: 14px;
+            margin-bottom: 18px;
+        }
+        
+        .seo-url { font-size: 12px; }
+        .seo-title { font-size: 16px; margin: 4px 0; line-height: 1.3; }
+        .seo-desc { font-size: 13px; line-height: 1.4; }
+        
+        /* Animation */
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .animate-spin { animation: spin 1s linear infinite; }
+    </style>
 </head>
 
-<body class="bg-gray-50 h-screen overflow-hidden">
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
 
-<div class="flex h-screen overflow-hidden bg-gray-50">
-<main class="flex-1 h-full overflow-y-auto bg-white">
-        <!-- Editor Container - Full Width WordPress Style -->
-        <div id="tiptap-editor" class="w-full min-h-full"></div>
-    </main>
-    
-    <aside class="w-80 h-full bg-white border-l border-gray-200 overflow-y-auto shrink-0 z-20 shadow-sm flex flex-col">
-        <div class="p-6 space-y-6">
-            <!-- Header / Back Link -->
-            <div class="mb-4">
-                <a href="<?= $base_url ?>/admin/content" class="text-xs text-gray-500 hover:text-gray-900 flex items-center mb-2">
-                     <span class="material-symbols-outlined text-[14px] mr-1">arrow_back</span>
-                     Back to Content
+<div id="app" class="editor-layout">
+    <!-- Main Area -->
+    <div class="main-area bg-white dark:bg-slate-900">
+        <!-- Top Bar -->
+        <header class="top-bar bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-slate-800">
+            <div class="flex items-center gap-4">
+                <a href="<?= $base_url ?>/admin/content" class="flex items-center gap-2 px-3 py-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-sm font-medium transition-colors">
+                    <span class="material-symbols-outlined" style="font-size: 18px;">arrow_back</span>
+                    Content
                 </a>
+                <span class="px-3 py-1 rounded-full text-xs font-semibold uppercase <?= $postStatus === 'published' ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400' : 'bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400' ?>">
+                    <?= $postStatus ?>
+                </span>
             </div>
-
-            <!-- Title Input (Adding this back as it was lost in the snippet but essential) -->
-             <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Title</label>
-                <input 
-                    id="post-title" 
-                    type="text" 
-                    class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm font-bold"
-                    value="<?= htmlspecialchars($post['title'] ?? '') ?>"
-                    placeholder="Enter title here..."
-                >
-            </div>
-
-            <!-- Status -->
-            <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Status</label>
-                <select id="post-status" class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    <option value="draft" <?= ($postStatus ?? 'draft') === 'draft' ? 'selected' : '' ?>>Draft</option>
-                    <option value="published" <?= ($postStatus ?? '') === 'published' ? 'selected' : '' ?>>Published</option>
-                </select>
-            </div>
-            
-            <!-- Type (Adding back logic) -->
-            <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Type</label>
-                <select id="post-type" class="w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
-                    <?php 
-                    global $ZED_POST_TYPES;
-                    $currentType = $post['type'] ?? ($_GET['type'] ?? 'post');
-                    
-                    // Default types if global registry is empty/missing
-                    $types = !empty($ZED_POST_TYPES) ? $ZED_POST_TYPES : [
-                        'post' => ['label' => 'Post'],
-                        'page' => ['label' => 'Page']
-                    ];
-                    
-                    foreach ($types as $typeKey => $config): 
-                        $label = $config['label'] ?? ucfirst($typeKey);
-                    ?>
-                    <option value="<?= $typeKey ?>" <?= $currentType === $typeKey ? 'selected' : '' ?>>
-                        <?= htmlspecialchars($label) ?>
-                    </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            
-            <!-- Page Attributes (Template) -->
-            <div id="page-attributes-section" class="hidden border-t border-gray-100 pt-4 mt-4">
-                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Page Template</label>
-                <select id="page-template" class="w-full border-gray-300 rounded-md shadow-sm text-sm focus:ring-indigo-500 focus:border-indigo-500">
-                    <?php 
-                    $pData = is_string($post['data'] ?? '') ? json_decode($post['data'], true) : ($post['data'] ?? []);
-                    $curTemplate = $pData['template'] ?? 'default';
-                    ?>
-                    <option value="default" <?= $curTemplate === 'default' ? 'selected' : '' ?>>Default Template</option>
-                    <option value="contact" <?= $curTemplate === 'contact' ? 'selected' : '' ?>>Contact Page</option>
-                    <option value="landing" <?= $curTemplate === 'landing' ? 'selected' : '' ?>>Landing Page (Full Width)</option>
-                </select>
-            </div>
-
-            <!-- Save Button -->
-            <button id="save-btn" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none transition-colors">
-                Save Changes
-            </button>
-            
-            <hr class="border-gray-100">
-            
-            <!-- Slug -->
-            <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">URL Slug</label>
-                <input 
-                    id="post-slug" 
-                    type="text" 
-                    class="w-full border-gray-300 rounded-md shadow-sm text-sm" 
-                    placeholder="my-post-url"
-                    value="<?= htmlspecialchars($post['slug'] ?? '') ?>"
-                >
-            </div>
-            
-            <div id="save-feedback" class="text-xs text-center text-gray-500 h-4"></div>
-            
-            <!-- Categories Section -->
-            <div class="border-t border-gray-100 pt-4 mt-4">
-                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Categories</label>
-                <div id="category-list" class="space-y-2 max-h-40 overflow-y-auto border border-gray-200 rounded p-2 bg-gray-50">
-                    <div class="text-xs text-gray-400 text-center py-2">Loading categories...</div>
-                </div>
-                <button type="button" class="text-xs text-indigo-600 mt-2 font-medium hover:underline flex items-center gap-1 opacity-50 cursor-not-allowed" title="Coming Soon">
-                    <span class="material-symbols-outlined text-[14px]">add</span>
-                    Add New Category
+            <div class="flex items-center gap-3">
+                <span id="save-status" class="text-xs text-slate-400 dark:text-slate-500"></span>
+                <button class="w-9 h-9 flex items-center justify-center text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" onclick="document.getElementById('app').classList.toggle('panel-hidden')">
+                    <span class="material-symbols-outlined">right_panel_open</span>
                 </button>
+                <button id="save-btn" class="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-semibold transition-colors">
+                    <span class="material-symbols-outlined" style="font-size: 18px;">check</span>
+                    Save
+                </button>
+            </div>
+        </header>
+        
+        <!-- Editor -->
+        <div id="tiptap-editor"></div>
+    </div>
+    
+    <!-- Sidebar -->
+    <aside class="sidebar bg-white dark:bg-slate-900 border-l border-gray-200 dark:border-slate-800">
+        <div class="sidebar-tabs border-b border-gray-100 dark:border-slate-800">
+            <div class="sidebar-tab active bg-primary text-white" data-tab="doc">Document</div>
+            <div class="sidebar-tab text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300" data-tab="seo">SEO</div>
+        </div>
+        
+        <div class="sidebar-content">
+            <!-- Document Tab -->
+            <div class="tab-pane" data-tab="doc">
+                <div class="form-group">
+                    <label class="form-label text-slate-500 dark:text-slate-400">Title</label>
+                    <input type="text" id="post-title" class="form-input bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:border-primary focus:ring-2 focus:ring-primary/20" value="<?= htmlspecialchars($post['title'] ?? '') ?>" placeholder="Post title...">
+                </div>
                 
-                <script>
-                    document.addEventListener('DOMContentLoaded', async () => {
-                        const list = document.getElementById('category-list');
-                        
-                        try {
-                            const res = await fetch('<?php echo \Core\Router::url("/admin/api/categories"); ?>');
-                            if (!res.ok) throw new Error('Fetch failed');
-                            const categories = await res.json();
-                            
-                            // Get saved selection directly from PHP
-                            const savedCats = <?php echo json_encode($data['categories'] ?? []); ?>;
-                            
-                            if (categories.length === 0) {
-                                list.innerHTML = '<div class="text-xs text-gray-500 p-2">No categories found.</div>';
-                                return;
+                <div class="form-group">
+                    <label class="form-label text-slate-500 dark:text-slate-400">URL Slug</label>
+                    <div class="slug-box bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                        <span class="slug-prefix text-slate-400 dark:text-slate-500">/</span>
+                        <input type="text" id="post-slug" class="slug-input text-slate-700 dark:text-slate-300" value="<?= htmlspecialchars($post['slug'] ?? '') ?>" placeholder="url-slug">
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="form-group">
+                        <label class="form-label text-slate-500 dark:text-slate-400">Status</label>
+                        <select id="post-status" class="form-input bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+                            <option value="draft" <?= $postStatus === 'draft' ? 'selected' : '' ?>>Draft</option>
+                            <option value="published" <?= $postStatus === 'published' ? 'selected' : '' ?>>Published</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label text-slate-500 dark:text-slate-400">Type</label>
+                        <select id="post-type" class="form-input bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">
+                            <?php foreach ($types as $typeKey => $config): ?>
+                            <option value="<?= $typeKey ?>" <?= $currentType === $typeKey ? 'selected' : '' ?>><?= htmlspecialchars($config['label'] ?? ucfirst($typeKey)) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label text-slate-500 dark:text-slate-400">Featured Image</label>
+                    <div id="upload-box" class="upload-area border-slate-200 dark:border-slate-700 hover:border-primary dark:hover:border-primary bg-slate-50 dark:bg-slate-800 <?= $featuredImageUrl ? 'has-image' : '' ?>" onclick="document.getElementById('file-input').click()">
+                        <?php if ($featuredImageUrl): ?>
+                            <img id="preview-img" src="<?= htmlspecialchars($featuredImageUrl) ?>">
+                        <?php else: ?>
+                            <span class="material-symbols-outlined text-3xl text-slate-300 dark:text-slate-600">add_photo_alternate</span>
+                            <div class="text-xs text-slate-400 dark:text-slate-500 mt-2">Click to upload</div>
+                            <img id="preview-img" style="display:none;">
+                        <?php endif; ?>
+                        <input type="file" id="file-input" accept="image/*" style="display:none;">
+                    </div>
+                    <button type="button" id="remove-img" class="text-xs text-red-500 mt-2 cursor-pointer bg-transparent border-none" style="display:<?= $featuredImageUrl ? 'inline' : 'none' ?>">Remove</button>
+                </div>
+                
+                <div class="form-group">
+                    <button class="collapse-btn text-slate-700 dark:text-slate-300" onclick="this.classList.toggle('open'); this.nextElementSibling.classList.toggle('open');">
+                        <span class="title">Excerpt</span>
+                        <span class="material-symbols-outlined icon text-slate-400">expand_more</span>
+                    </button>
+                    <div class="collapse-body">
+                        <textarea id="post-excerpt" class="form-input bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white" rows="3" placeholder="Brief summary..."><?= htmlspecialchars($postExcerpt) ?></textarea>
+                        <div class="form-hint text-slate-400 dark:text-slate-500">Used in archives and search</div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <button class="collapse-btn text-slate-700 dark:text-slate-300" onclick="this.classList.toggle('open'); this.nextElementSibling.classList.toggle('open');">
+                        <span class="title">Categories</span>
+                        <span class="material-symbols-outlined icon text-slate-400">expand_more</span>
+                    </button>
+                    <div class="collapse-body">
+                        <div id="cat-list" class="cat-list bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                            <div class="cat-item text-slate-400">Loading...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- SEO Tab -->
+            <div class="tab-pane" data-tab="seo" style="display:none;">
+                <div class="form-group">
+                    <label class="form-label text-slate-500 dark:text-slate-400">Search Preview</label>
+                    <div class="seo-box bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                        <div id="seo-url" class="seo-url text-green-600 dark:text-green-400"><?= str_replace(['https://', 'http://'], '', $base_url) ?>/...</div>
+                        <div id="seo-title" class="seo-title text-blue-600 dark:text-blue-400">Page Title</div>
+                        <div id="seo-desc" class="seo-desc text-slate-600 dark:text-slate-400">Add a meta description...</div>
+                    </div>
+                </div>
+                
+                <?php 
+                if (function_exists('zed_get_metaboxes_for_type')) {
+                    $metaboxes = zed_get_metaboxes_for_type($currentType);
+                    foreach ($metaboxes as $metaboxId => $metabox) {
+                        if (function_exists('zed_render_metabox_field')) {
+                            $meta = [];
+                            if (!empty($post['data'])) {
+                                $postData = is_string($post['data']) ? json_decode($post['data'], true) : $post['data'];
+                                $meta = $postData['meta'] ?? [];
                             }
                             
-                            list.innerHTML = categories.map(cat => {
-                                const isChecked = savedCats.includes(cat.slug) ? 'checked' : '';
-                                return `
-                                    <label class="flex items-center space-x-2 cursor-pointer hover:bg-white rounded px-1 group">
-                                        <input type="checkbox" name="categories[]" value="${cat.slug}" ${isChecked} class="rounded text-indigo-600 focus:ring-indigo-500 border-gray-300">
-                                        <span class="text-sm text-gray-700 group-hover:text-gray-900">${cat.name}</span>
-                                    </label>
-                                `;
-                            }).join('');
-                            
-                        } catch (e) {
-                            console.error('Category load error:', e);
-                            list.innerHTML = '<div class="text-xs text-red-400 p-2">Failed to load categories</div>';
+                            foreach ($metabox['fields'] as $field) {
+                                if (($field['type'] ?? '') !== 'html') {
+                                    $fieldId = $field['id'] ?? '';
+                                    $value = $meta[$fieldId] ?? ($field['default'] ?? '');
+                                    $name = "meta[{$fieldId}]";
+                                    
+                                    echo '<div class="form-group">';
+                                    echo '<label class="form-label text-slate-500 dark:text-slate-400">' . htmlspecialchars($field['label'] ?? '') . '</label>';
+                                    
+                                    if (($field['type'] ?? '') === 'textarea') {
+                                        echo '<textarea name="' . $name . '" class="form-input bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white" rows="2" placeholder="' . htmlspecialchars($field['placeholder'] ?? '') . '">' . htmlspecialchars($value) . '</textarea>';
+                                    } elseif (($field['type'] ?? '') === 'select') {
+                                        echo '<select name="' . $name . '" class="form-input bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white">';
+                                        foreach (($field['options'] ?? []) as $optVal => $optLabel) {
+                                            echo '<option value="' . htmlspecialchars($optVal) . '"' . ($value == $optVal ? ' selected' : '') . '>' . htmlspecialchars($optLabel) . '</option>';
+                                        }
+                                        echo '</select>';
+                                    } elseif (($field['type'] ?? '') === 'toggle') {
+                                        $isOn = ($value === 'true' || $value === '1' || $value === true);
+                                        echo '<div class="toggle-row border-b border-slate-100 dark:border-slate-800">';
+                                        echo '<span class="text-sm text-slate-600 dark:text-slate-400">' . htmlspecialchars($field['description'] ?? 'Enable') . '</span>';
+                                        echo '<div class="toggle-switch ' . ($isOn ? 'on bg-primary' : 'bg-slate-200 dark:bg-slate-700') . '" onclick="this.classList.toggle(\'on\'); this.classList.toggle(\'bg-primary\'); this.classList.toggle(\'bg-slate-200\'); this.classList.toggle(\'dark:bg-slate-700\'); this.nextElementSibling.checked = this.classList.contains(\'on\');"><span class="after:bg-white"></span></div>';
+                                        echo '<input type="checkbox" name="' . $name . '" value="true"' . ($isOn ? ' checked' : '') . ' style="display:none;">';
+                                        echo '</div>';
+                                    } else {
+                                        echo '<input type="text" name="' . $name . '" class="form-input bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:border-primary" value="' . htmlspecialchars($value) . '" placeholder="' . htmlspecialchars($field['placeholder'] ?? '') . '">';
+                                    }
+                                    
+                                    if (!empty($field['description']) && ($field['type'] ?? '') !== 'toggle') {
+                                        echo '<div class="form-hint text-slate-400 dark:text-slate-500">' . htmlspecialchars($field['description']) . '</div>';
+                                    }
+                                    echo '</div>';
+                                }
+                            }
                         }
-                    });
-                </script>
-            </div>
-            
-            <!-- Featured Image Section -->
-            <div class="border-t border-gray-100 pt-4 mt-4">
-                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Featured Image</label>
-                <div id="featured-image-drop" class="border-2 border-dashed border-gray-300 rounded-md p-4 flex flex-col items-center justify-center text-center hover:bg-gray-50 hover:border-indigo-400 cursor-pointer transition-colors" onclick="document.getElementById('feat-upload').click()">
-                    <div id="featured-preview" class="hidden w-full mb-2">
-                        <img id="featured-img" src="" class="w-full h-32 object-cover rounded" alt="Featured">
-                    </div>
-                    <div id="featured-placeholder">
-                        <svg class="h-10 w-10 text-gray-400 mb-2 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                        </svg>
-                        <span class="text-xs text-gray-500">Click to upload or drag & drop</span>
-                    </div>
-                    <input type="file" id="feat-upload" class="hidden" accept="image/*">
-                </div>
-                <button type="button" id="remove-featured" class="hidden text-xs text-red-500 mt-2 font-medium hover:underline">Remove Image</button>
-            </div>
-            
-            <!-- Excerpt Section -->
-            <div class="border-t border-gray-100 pt-4 mt-4">
-                <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Excerpt</label>
-                <textarea id="post-excerpt" rows="3" class="w-full border-gray-300 rounded-md shadow-sm text-sm focus:border-indigo-500 focus:ring-indigo-500" placeholder="Write a short summary..."><?= htmlspecialchars($postExcerpt ?? '') ?></textarea>
+                    }
+                }
+                ?>
             </div>
         </div>
     </aside>
 </div>
 
-<!-- DATA INJECTION -->
 <script>
-    // Default block for BlockNote (must have at least one valid block)
-    const DEFAULT_BLOCK = [{
-        id: 'default_' + Date.now(),
-        type: 'paragraph',
-        props: { textColor: 'default', backgroundColor: 'default', textAlignment: 'left' },
-        content: [],
-        children: []
-    }];
-    
-    // Initialize editor content - BlockNote requires non-empty array
     window.ZERO_INITIAL_CONTENT = <?= $initialDataSafe ?>;
-    
-    // Validate and fallback to default block if invalid
-    if (!window.ZERO_INITIAL_CONTENT || 
-        !Array.isArray(window.ZERO_INITIAL_CONTENT) || 
-        window.ZERO_INITIAL_CONTENT.length === 0) {
-        window.ZERO_INITIAL_CONTENT = DEFAULT_BLOCK;
+    if (!window.ZERO_INITIAL_CONTENT || !Array.isArray(window.ZERO_INITIAL_CONTENT) || window.ZERO_INITIAL_CONTENT.length === 0) {
+        window.ZERO_INITIAL_CONTENT = [{ id: 'default_' + Date.now(), type: 'paragraph', props: { textColor: 'default', backgroundColor: 'default', textAlignment: 'left' }, content: [], children: [] }];
     }
-    
-    // Ensure zero_editor_content is initialized for save handler
     window.zero_editor_content = window.ZERO_INITIAL_CONTENT;
     
     let postId = "<?= htmlspecialchars($postId ?? '') ?>";
     const baseUrl = "<?= $base_url ?>";
-    // Pre-populate featured image URL from PHP (if editing existing post)
     let featuredImageUrl = "<?= htmlspecialchars($featuredImageUrl) ?>";
 </script>
 
-<!-- REACT BUNDLE -->
 <script type="module" src="<?= $base_url ?>/content/themes/admin-default/assets/js/editor.bundle.js"></script>
 
-<!-- SAVE & UI LOGIC -->
 <script>
-// Zero CMS Configuration
-const ZERO_BASE_URL = '<?= $base_url ?>';
-
-// Sync slugs
-const titleInput = document.getElementById('post-title');
-const slugInput = document.getElementById('post-slug');
-
-function generateSlug(text) {
-    return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-}
-
-if (titleInput && slugInput) {
-    titleInput.addEventListener('input', () => {
-        if (!postId) {
-            slugInput.value = generateSlug(titleInput.value);
-        }
+// Tabs
+document.querySelectorAll('.sidebar-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.sidebar-tab').forEach(t => {
+            t.classList.remove('active', 'bg-primary', 'text-white');
+            t.classList.add('text-slate-500', 'dark:text-slate-400');
+        });
+        document.querySelectorAll('.tab-pane').forEach(p => p.style.display = 'none');
+        tab.classList.add('active', 'bg-primary', 'text-white');
+        tab.classList.remove('text-slate-500', 'dark:text-slate-400');
+        document.querySelector('.tab-pane[data-tab="' + tab.dataset.tab + '"]').style.display = 'block';
     });
+});
 
-    slugInput.addEventListener('input', () => slugInput.value = generateSlug(slugInput.value));
+// Slug
+const titleEl = document.getElementById('post-title');
+const slugEl = document.getElementById('post-slug');
+const genSlug = t => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+titleEl?.addEventListener('input', () => { if (!postId) slugEl.value = genSlug(titleEl.value); updateSEO(); });
+slugEl?.addEventListener('input', () => { slugEl.value = genSlug(slugEl.value); updateSEO(); });
+
+// SEO
+function updateSEO() {
+    const title = document.querySelector('[name="meta[seo_title]"]')?.value || titleEl?.value || 'Page Title';
+    const desc = document.querySelector('[name="meta[seo_desc]"]')?.value || 'Add a meta description...';
+    const slug = slugEl?.value || 'page';
+    document.getElementById('seo-url').textContent = '<?= str_replace(['https://', 'http://'], '', $base_url) ?>/' + slug;
+    document.getElementById('seo-title').textContent = title.substring(0, 60);
+    document.getElementById('seo-desc').textContent = desc.substring(0, 160);
 }
+document.querySelector('[name="meta[seo_title]"]')?.addEventListener('input', updateSEO);
+document.querySelector('[name="meta[seo_desc]"]')?.addEventListener('input', updateSEO);
+setTimeout(updateSEO, 300);
 
-// Toggle Page Attributes based on Type
-const typeSelect = document.getElementById('post-type');
-const pageAttrSection = document.getElementById('page-attributes-section');
-
-function togglePageAttributes() {
-    if (!typeSelect || !pageAttrSection) return;
-    if (typeSelect.value === 'page') {
-        pageAttrSection.classList.remove('hidden');
-    } else {
-        pageAttrSection.classList.add('hidden');
-    }
-}
-
-if (typeSelect) {
-    typeSelect.addEventListener('change', togglePageAttributes);
-    // Initial check
-    togglePageAttributes();
-}
-
-// Save Handler
-const saveBtn = document.getElementById('save-btn');
-if (saveBtn) {
-    saveBtn.addEventListener('click', async () => {
-        const btn = saveBtn; // safe reference
-        const originalText = btn.innerText;
-        
-        // Featured Image
-        const featImgEl = document.getElementById('featured-img');
-        const featuredImage = featImgEl ? featImgEl.src : '';
-        
-        // Excerpt
-        const excerptEl = document.querySelector('textarea');
-        const excerpt = excerptEl ? excerptEl.value : '';
-        
-        // Categories
-        const checkedCats = document.querySelectorAll('input[name="categories[]"]:checked');
-        const categories = Array.from(checkedCats).map(cb => cb.value);
-    
-        btn.innerText = 'Saving...';
-        btn.disabled = true;
-    
-        // 1. Collect Data
-        const contentData = window.zero_editor_content || []; 
-        
-        // Elements
-        const titleEl = document.getElementById('post-title');
-        const slugEl = document.getElementById('post-slug');
-        const statusEl = document.getElementById('post-status');
-        const typeEl = document.getElementById('post-type');
-        const templateEl = document.getElementById('page-template');
-        
-        const payload = { 
-            id: postId,
-            title: titleEl ? titleEl.value : 'Untitled', 
-            slug: slugEl ? slugEl.value : '', 
-            status: statusEl ? statusEl.value : 'draft',
-            type: typeEl ? typeEl.value : 'post',
-            content: JSON.stringify(contentData),
-            data: {
-                featured_image: featuredImageUrl || featuredImage,
-                excerpt: excerpt,
-                categories: categories,
-                template: templateEl ? templateEl.value : 'default'
-            }
-        };
-
+// Categories
+(async () => {
+    const list = document.getElementById('cat-list');
     try {
-        // 2. Send to Backend
-        const response = await fetch(ZERO_BASE_URL + '/admin/save-post', {
+        const cats = await (await fetch('<?= Router::url("/admin/api/categories") ?>')).json();
+        const saved = <?= json_encode($data['categories'] ?? []) ?>;
+        if (cats.length === 0) { list.innerHTML = '<div class="cat-item text-slate-400">No categories</div>'; return; }
+        list.innerHTML = cats.map(c => `<label class="cat-item text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border-b border-slate-100 dark:border-slate-700 last:border-0"><input type="checkbox" name="categories[]" value="${c.slug}" class="accent-primary" ${saved.includes(c.slug) ? 'checked' : ''}> ${c.name}</label>`).join('');
+    } catch { list.innerHTML = '<div class="cat-item text-red-500">Failed to load</div>'; }
+})();
+
+// Image
+const fileInput = document.getElementById('file-input');
+const uploadBox = document.getElementById('upload-box');
+const previewImg = document.getElementById('preview-img');
+const removeBtn = document.getElementById('remove-img');
+
+fileInput?.addEventListener('change', async e => {
+    const file = e.target.files[0]; if (!file) return;
+    const fd = new FormData(); fd.append('image', file);
+    try {
+        const r = await (await fetch(baseUrl + '/admin/api/upload', { method: 'POST', body: fd })).json();
+        if (r.success && r.file?.url) {
+            featuredImageUrl = r.file.url;
+            previewImg.src = featuredImageUrl;
+            previewImg.style.display = 'block';
+            uploadBox.classList.add('has-image');
+            removeBtn.style.display = 'inline';
+            uploadBox.querySelectorAll('.material-symbols-outlined, .text-xs').forEach(el => el.style.display = 'none');
+        }
+    } catch { alert('Upload failed'); }
+});
+
+removeBtn?.addEventListener('click', e => {
+    e.stopPropagation();
+    featuredImageUrl = '';
+    previewImg.src = '';
+    previewImg.style.display = 'none';
+    uploadBox.classList.remove('has-image');
+    removeBtn.style.display = 'none';
+    uploadBox.querySelectorAll('.material-symbols-outlined, .text-xs').forEach(el => el.style.display = '');
+});
+
+// Save
+document.getElementById('save-btn')?.addEventListener('click', async function() {
+    const btn = this; btn.disabled = true;
+    btn.innerHTML = '<span class="material-symbols-outlined animate-spin" style="font-size: 18px;">sync</span> Saving...';
+    
+    const payload = {
+        id: postId,
+        title: titleEl?.value || 'Untitled',
+        slug: slugEl?.value || '',
+        status: document.getElementById('post-status')?.value || 'draft',
+        type: document.getElementById('post-type')?.value || 'post',
+        content: JSON.stringify(window.zero_editor_content || []),
+        data: {
+            featured_image: featuredImageUrl,
+            excerpt: document.getElementById('post-excerpt')?.value || '',
+            categories: Array.from(document.querySelectorAll('input[name="categories[]"]:checked')).map(c => c.value),
+            meta: {}
+        }
+    };
+    
+    document.querySelectorAll('[name^="meta["]').forEach(el => {
+        const m = el.name.match(/^meta\[([^\]]+)\]$/);
+        if (m) payload.data.meta[m[1]] = el.type === 'checkbox' ? (el.checked ? 'true' : 'false') : el.value;
+    });
+    
+    try {
+        const res = await fetch(baseUrl + '/admin/save-post', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'X-ZED-NONCE': window.ZED_NONCE || '' },
             body: JSON.stringify(payload)
         });
-        const result = await response.json();
+        const r = await res.json();
         
-        if (result.success) {
-            btn.innerText = 'Saved!';
-            
-            // If it was a new post, update the URL without refreshing
-            if (!payload.id && result.new_id) {
-                window.history.pushState({}, '', '?id=' + result.new_id);
-                // Update global postId
-                postId = result.new_id;
-            }
-            setTimeout(() => { btn.innerText = originalText; btn.disabled = false; }, 2000);
-            
-            // Feedback
-            const feedback = document.getElementById('save-feedback');
-            if(feedback) {
-                feedback.textContent = 'Last saved: ' + new Date().toLocaleTimeString();
-                feedback.className = 'text-xs text-center text-green-600 h-4';
-            }
+        if (r.success) {
+            btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;">check</span> Saved!';
+            document.getElementById('save-status').textContent = 'Saved ' + new Date().toLocaleTimeString();
+            if (!postId && r.new_id) { history.pushState({}, '', '?id=' + r.new_id); postId = r.new_id; }
+            setTimeout(() => { btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;">check</span> Save'; btn.disabled = false; }, 1500);
         } else {
-            alert('Error saving: ' + (result.message || result.error));
-            btn.innerText = 'Retry';
-            btn.disabled = false;
+            alert('Error: ' + (r.message || r.error));
+            btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;">check</span> Save'; btn.disabled = false;
         }
-    } catch (e) {
-        console.error(e);
-        alert('Network Error');
-        btn.innerText = originalText;
-        btn.disabled = false;
-    }
-});
-}
-
-// Featured Image Upload Handler
-const featUpload = document.getElementById('feat-upload');
-const featPreview = document.getElementById('featured-preview');
-const featPlaceholder = document.getElementById('featured-placeholder');
-const featImg = document.getElementById('featured-img');
-const removeBtn = document.getElementById('remove-featured');
-const featDropZone = document.getElementById('featured-image-drop');
-// featuredImageUrl is already defined in DATA INJECTION block from PHP
-// Initialize UI based on pre-existing image
-if (featuredImageUrl && featuredImageUrl.trim() !== '') {
-    featImg.src = featuredImageUrl;
-    featPreview.classList.remove('hidden');
-    featPlaceholder.classList.add('hidden');
-    removeBtn.classList.remove('hidden');
-}
-
-featUpload.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    await uploadFeaturedImage(file);
+    } catch { alert('Network error'); btn.innerHTML = '<span class="material-symbols-outlined" style="font-size: 18px;">check</span> Save'; btn.disabled = false; }
 });
 
-// Drag and drop for featured image
-featDropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    featDropZone.classList.add('border-indigo-500', 'bg-indigo-50');
-});
-
-featDropZone.addEventListener('dragleave', () => {
-    featDropZone.classList.remove('border-indigo-500', 'bg-indigo-50');
-});
-
-featDropZone.addEventListener('drop', async (e) => {
-    e.preventDefault();
-    featDropZone.classList.remove('border-indigo-500', 'bg-indigo-50');
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) {
-        await uploadFeaturedImage(file);
-    }
-});
-
-async function uploadFeaturedImage(file) {
-    const formData = new FormData();
-    formData.append('image', file);
-    
-    try {
-        const res = await fetch(baseUrl + '/admin/api/upload', {
-            method: 'POST',
-            body: formData
-        });
-        const result = await res.json();
-        
-        if (result.success && result.file && result.file.url) {
-            featuredImageUrl = result.file.url;
-            featImg.src = featuredImageUrl;
-            featPreview.classList.remove('hidden');
-            featPlaceholder.classList.add('hidden');
-            removeBtn.classList.remove('hidden');
-        } else {
-            alert('Upload failed: ' + (result.error || 'Unknown error'));
-        }
-    } catch (err) {
-        console.error('Featured image upload error:', err);
-        alert('Upload failed');
-    }
-}
-
-removeBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    featuredImageUrl = null;
-    featImg.src = '';
-    featPreview.classList.add('hidden');
-    featPlaceholder.classList.remove('hidden');
-    removeBtn.classList.add('hidden');
-});
+document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 's') { e.preventDefault(); document.getElementById('save-btn')?.click(); } });
 </script>
 
 </body>

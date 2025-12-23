@@ -11,6 +11,33 @@ use Core\Event;
 use Core\Router;
 use Core\Auth;
 use Core\Database;
+
+/**
+ * SECURITY: Verify CSRF nonce for API requests
+ * Returns true if valid, otherwise sends 403 and returns false
+ * 
+ * @param array|null $jsonData Pre-parsed JSON body (optional)
+ * @return bool True if nonce is valid
+ */
+function zed_require_ajax_nonce(?array $jsonData = null): bool
+{
+    if (!function_exists('zed_verify_ajax_nonce')) {
+        return true; // Skip if security helpers not loaded
+    }
+    
+    if (!zed_verify_ajax_nonce('zed_admin_action', $jsonData)) {
+        header('Content-Type: application/json');
+        http_response_code(403);
+        echo json_encode([
+            'success' => false, 
+            'error' => 'Security verification failed. Please refresh the page and try again.'
+        ]);
+        Router::setHandled('');
+        return false;
+    }
+    return true;
+}
+
 // Register admin routes
 Event::on('route_request', function (array $request): void {
     $uri = $request['uri'];
@@ -1057,6 +1084,12 @@ Event::on('route_request', function (array $request): void {
         
         try {
             $input = json_decode(file_get_contents('php://input'), true);
+            
+            // SECURITY: Verify CSRF nonce
+            if (!zed_require_ajax_nonce($input)) {
+                return; // Response already sent by helper
+            }
+            
             if (!$input || !is_array($input)) {
                 throw new Exception('Invalid request data.');
             }
@@ -1816,6 +1849,12 @@ Event::on('route_request', function (array $request): void {
         
         try {
             $input = json_decode(file_get_contents('php://input'), true);
+            
+            // SECURITY: Verify CSRF nonce
+            if (!zed_require_ajax_nonce($input)) {
+                return; // Response already sent by helper
+            }
+            
             $identifier = $input['filename'] ?? '';
             
             // Security: prevent directory traversal
@@ -1996,6 +2035,12 @@ Event::on('route_request', function (array $request): void {
         
         try {
             $input = json_decode(file_get_contents('php://input'), true);
+            
+            // SECURITY: Verify CSRF nonce
+            if (!zed_require_ajax_nonce($input)) {
+                return; // Response already sent by helper
+            }
+            
             $themeName = basename($input['theme'] ?? '');
             
             if (empty($themeName)) {
@@ -2231,6 +2276,12 @@ Event::on('route_request', function (array $request): void {
 
         try {
             $input = json_decode(file_get_contents('php://input'), true);
+            
+            // SECURITY: Verify CSRF nonce
+            if (!zed_require_ajax_nonce($input)) {
+                return; // Response already sent by helper
+            }
+            
             $ids = $input['ids'] ?? [];
 
             if (empty($ids) || !is_array($ids)) {
@@ -2276,6 +2327,12 @@ Event::on('route_request', function (array $request): void {
 
         try {
             $input = json_decode(file_get_contents('php://input'), true);
+            
+            // SECURITY: Verify CSRF nonce
+            if (!zed_require_ajax_nonce($input)) {
+                return; // Response already sent by helper
+            }
+            
             $files = $input['files'] ?? [];
 
             if (empty($files) || !is_array($files)) {

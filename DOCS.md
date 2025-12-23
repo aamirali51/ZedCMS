@@ -1,7 +1,7 @@
 # Zed CMS — Feature Guide
 
 > **A Simple Guide to Every Feature in Zed CMS**  
-> Last Updated: 2025-12-22
+> Last Updated: 2025-12-23 | Version 2.5.0
 
 ---
 
@@ -37,6 +37,7 @@ Your command center showing:
 - **Recent Activity** — Last 5 edited items
 - **Quick Draft** — Create posts instantly
 - **Health Checks** — System status (uploads, PHP, SEO)
+- **🌙 Dark Mode Toggle** — *NEW v2.5.0* Switch via header icon
 
 ### 2. Content Manager (`/admin/content`)
 | Feature | How It Works |
@@ -44,6 +45,8 @@ Your command center showing:
 | Create | Click "New Content" or use Quick Draft |
 | Edit | Click row or Edit button |
 | Delete | Click delete icon (asks confirmation) |
+| **Batch Select** | *NEW v2.5.0* Checkbox on each row, "Select All" in header |
+| **Batch Delete** | *NEW v2.5.0* Delete multiple items at once |
 | Filter | Use status tabs (All / Published / Draft) |
 | Search | Type in search box |
 | Pagination | 10 items per page |
@@ -60,6 +63,8 @@ A modern block-based editor (like Notion):
 - **Auto-Optimize** — Converts to WebP, creates thumbnails
 - **Search** — Instant filtering
 - **Copy URL** — One-click clipboard copy
+- **Batch Select** — *NEW v2.5.0* Checkbox on each media card
+- **Batch Delete** — *NEW v2.5.0* Delete multiple files at once
 
 ### 5. Categories (`/admin/categories`)
 Simple category management:

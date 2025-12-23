@@ -1,9 +1,10 @@
 # Zed CMS — Master Architecture Blueprint
 
-> **Version:** 2.4.0  
+> **Version:** 2.6.0  
 > **Generated:** 2025-12-22  
-> **Last Update:** 2025-12-22 — Modular Admin Architecture, Addon DX APIs (Shortcodes, AJAX, Settings, Metabox, Enqueue)  
+> **Last Update:** 2025-12-23 — BlockNote Editor Refactor (dynamic theme, CSS variables), Frontend Routing Fix (exit bug), Addon Settings System, Editor UI Modernization  
 > **Purpose:** Source of Truth for all development activities.
+
 
 ---
 
@@ -91,12 +92,13 @@ ZedCMS/
 ├── content/                     # USER CONTENT & EXTENSIONS
 │   ├── addons/                  # ✅ Plugin system
 │   │   ├── admin_addon.php      # Entry point (loads modular files)
-│   │   ├── admin/               # ✅ NEW: Modular admin system
+│   │   ├── admin/               # ✅ Modular admin system
 │   │   │   ├── rbac.php         # Role-Based Access Control
 │   │   │   ├── api.php          # AJAX, Settings, Notices, Metabox, Enqueue
 │   │   │   ├── helpers.php      # Content processing, image handling
+│   │   │   ├── renderer.php     # ✅ NEW v2.5.0: AdminRenderer service
 │   │   │   └── routes.php       # All /admin/* route handlers
-│   │   ├── frontend_addon.php   # Public routing, theme API (entry point)
+│   │   ├── frontend_addon.php   # Public routing, theme API, Frontend Controller
 │   │   ├── wiki_addon.php       # ✅ Developer wiki system
 │   │   ├── frontend/            # ✅ NEW: Organized helper system
 │   │   │   ├── helpers_content.php    # zed_get_post(), zed_get_posts()
@@ -520,6 +522,216 @@ zed_schedule_event('cleanup', 'daily', function() {
 | `daily` | 86400s |
 | `weekly` | 604800s |
 
+### 1.9 Frontend Controller Pattern (Single Source of Truth)
+
+**NEW in v2.5.0** — The `frontend_addon.php` route_request listener follows a clean "Controller" architecture:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                  FRONTEND CONTROLLER FLOW                           │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                     │
+│   1. THE BRAIN - Identify what user wants                           │
+│      └── Parse slug, detect: home / single / archive / 404          │
+│                                                                     │
+│   2. THE FETCH - Get raw data into $zed_query                       │
+│      └── Single Source of Truth global variable                     │
+│                                                                     │
+│   3. THE PREPARE - Standardize data for themes                      │
+│      └── $post, $posts, $is_404, $htmlContent, etc.                 │
+│                                                                     │
+│   4. THE HANDOFF - Determine template to load                       │
+│      └── Template hierarchy: single-{type}.php → single.php → index │
+│                                                                     │
+│   5. EXECUTE - Include template and exit                            │
+│                                                                     │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+#### The $zed_query Global
+
+```php
+global $zed_query;
+$zed_query = [
+    'type' => null,       // 'home', 'single', 'page', 'archive', 'preview', '404'
+    'object' => null,     // Single post/page data
+    'posts' => [],        // Array of posts for archives/home
+    'post_type' => null,  // CPT slug if applicable
+    'archive_title' => null,
+    'pagination' => [
+        'current_page' => 1,
+        'per_page' => 10,
+        'total_posts' => 0,
+        'total_pages' => 1,
+    ],
+];
+```
+
+#### Standardized Theme Globals
+
+Every theme template receives these pre-populated globals:
+
+| Global | Type | Description |
+|--------|------|-------------|
+| `$post` | array\|null | Current post/page object |
+| `$posts` | array | Array of posts for listings |
+| `$is_404` | bool | True if 404 error |
+| `$is_home` | bool | True if homepage (latest posts) |
+| `$is_archive` | bool | True if archive listing |
+| `$is_single` | bool | True if single post/preview |
+| `$is_page` | bool | True if static page |
+| `$htmlContent` | string | Pre-rendered BlockNote HTML |
+| `$base_url` | string | Site base URL |
+| `$page_num` | int | Current pagination page |
+| `$total_pages` | int | Total pages for pagination |
+| `$total_posts` | int | Total posts count |
+| `$post_type` | string | Current post type slug |
+| `$archive_title` | string | Archive page title |
+| `$beforeContent` | string | Hook output before content |
+| `$afterContent` | string | Hook output after content |
+
+**Benefits:**
+- Themes receive standardized variables — no direct DB access needed
+- All routing logic is centralized in one place
+- Template selection follows consistent hierarchy
+- Easy to extend for custom post types
+
+### 1.10 Professional Dark Mode
+
+**NEW in v2.5.0** — The admin panel features a professional dark mode implementation:
+
+#### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  DARK MODE SYSTEM                                                │
+├─────────────────────────────────────────────────────────────────┤
+│  1. FOUC Prevention (Flash of Unstyled Content)                  │
+│     └── Script in <head> applies 'dark' class immediately       │
+│                                                                  │
+│  2. Toggle Button                                                │
+│     └── Sun/Moon icon in header (#theme-toggle)                 │
+│                                                                  │
+│  3. Persistence                                                  │
+│     └── localStorage saves preference                           │
+│                                                                  │
+│  4. Tailwind Configuration                                       │
+│     └── darkMode: 'class' in tailwind.config                    │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### Implementation in admin-layout.php
+
+```php
+<!-- FOUC Prevention -->
+<script>
+    if (localStorage.getItem('theme') === 'dark') {
+        document.documentElement.classList.add('dark');
+    }
+</script>
+
+<!-- Body Classes -->
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200">
+
+<!-- Tailwind Config -->
+<script>
+    tailwind.config = {
+        darkMode: 'class',
+        // ... theme extensions
+    }
+</script>
+```
+
+#### CSS Pattern for Dark Mode
+
+All components use Tailwind's `dark:` prefix:
+```html
+<div class="bg-white dark:bg-slate-800 border-gray-200 dark:border-slate-700">
+    <span class="text-gray-900 dark:text-white">Content</span>
+</div>
+```
+
+### 1.11 Batch Operations (Content & Media)
+
+**NEW in v2.5.0** — Users can select multiple items and perform bulk actions:
+
+#### Content List Batch Delete
+
+| Feature | Implementation |
+|---------|----------------|
+| Select All Checkbox | `<th>` header with master toggle |
+| Row Checkboxes | Each row has `.content-checkbox` |
+| Bulk Actions Bar | Appears when items selected, shows count |
+| Delete Button | Triggers batch delete API |
+| API Endpoint | `POST /admin/api/batch-delete-content` |
+
+```javascript
+// Content List Batch Delete
+fetch('/admin/api/batch-delete-content', {
+    method: 'POST',
+    body: JSON.stringify({ ids: selectedIds })
+});
+```
+
+#### Media Gallery Batch Delete
+
+| Feature | Implementation |
+|---------|----------------|
+| Card Checkboxes | Visible on hover, checked state persists |
+| Toolbar Counter | "X selected" badge in sticky toolbar |
+| Delete Button | Appears when items selected |
+| API Endpoint | `POST /admin/api/batch-delete-media` |
+
+```javascript
+// Media Batch Delete
+fetch('/admin/api/batch-delete-media', {
+    method: 'POST',
+    body: JSON.stringify({ files: selectedFiles })
+});
+```
+
+### 1.12 AdminRenderer Service
+
+**NEW in v2.5.0** — Theme-agnostic rendering for admin pages:
+
+```php
+// content/addons/admin/renderer.php
+class AdminRenderer
+{
+    public static function getActiveTheme(): string;
+    public static function getThemePath(): string;
+    public static function resolveView(string $view): ?string;
+    public static function render(string $view, array $data = []): string;
+    public static function renderPage(string $view, array $data = [], array $layoutData = []): string;
+    public static function renderError(string $message): string;
+}
+```
+
+#### Usage
+
+```php
+use AdminRenderer;
+
+// Render a full page with layout
+$content = AdminRenderer::renderPage('addon-settings', [
+    'settings' => $addonSettings
+], [
+    'page_title' => 'Addon Settings',
+    'current_page' => 'addons'
+]);
+
+// Render just the view (no layout)
+$html = AdminRenderer::render('my-view', ['foo' => 'bar']);
+```
+
+#### View Resolution Order
+
+When resolving view `my-view`, AdminRenderer looks in:
+1. `content/themes/{theme}/views/my-view.php`
+2. `content/themes/{theme}/partials/my-view.php` (legacy)
+3. `content/themes/{theme}/my-view.php`
+4. Falls back to `admin-default` theme if not found
+
 
 ## 2. Implementation Status (Audit)
 
@@ -630,17 +842,26 @@ zed_schedule_event('cleanup', 'daily', function() {
 | **Template Data API** | `zed_add_template_data()` | Inject PHP variables into templates |
 | **Template Filter** | `zed_template_data` filter | Dynamic template variable injection |
 | **Dynamic Theme Switching** | `frontend_addon.php` | Reads active_theme from database |
+| **Professional Dark Mode** | `admin-layout.php` | ✅ NEW v2.5.0: Toggle button, localStorage persistence, FOUC prevention |
+| **Dark Mode Tailwind Config** | `admin-layout.php` | ✅ NEW v2.5.0: CDN with darkMode: 'class' configuration |
+| **Batch Content Selection** | `content-list-content.php` | ✅ NEW v2.5.0: Select all checkbox, row checkboxes, bulk actions bar |
+| **Batch Content Delete** | `/admin/api/batch-delete-content` | ✅ NEW v2.5.0: Delete multiple content items in one request |
+| **Batch Media Selection** | `media-content.php` | ✅ NEW v2.5.0: Card checkboxes, selection counter, toolbar integration |
+| **Batch Media Delete** | `/admin/api/batch-delete-media` | ✅ NEW v2.5.0: Delete multiple files in one request |
+| **Frontend Controller Pattern** | `frontend_addon.php` | ✅ NEW v2.5.0: Single Source of Truth ($zed_query global) |
+| **Standardized Theme Globals** | `frontend_addon.php` | ✅ NEW v2.5.0: $post, $posts, $is_404, $htmlContent pre-populated |
+| **AdminRenderer Service** | `admin/renderer.php` | ✅ NEW v2.5.0: Theme-agnostic admin page rendering |
+| **View Resolution Fallback** | `AdminRenderer` | ✅ NEW v2.5.0: views/ → partials/ → root fallback chain |
+| **Addon Settings Display** | `/admin/addon-settings` | ✅ Listing page for all addons with registered settings |
+| **Individual Addon Settings** | `/admin/addon-settings/{id}` | ✅ Dynamic settings page with field rendering |
 
 ### 🚧 Mocked/Static (Visual Only — Not Connected)
 
 | Feature | Location | Issue |
 |---------|----------|-------|
-| **Traffic Overview Chart** | `dashboard.php:230-254` | Hardcoded SVG paths (data available in `window.ZERO_DASHBOARD_DATA`) |
-| **Bulk Checkbox Selection** | `content-list.php:127-128,151` | Checkboxes render but no JS handler |
-
-| **"View" Action Link** | `content-list.php:189` | Links to `#` — should link to `/{slug}` |
-| **Media Delete Button** | `media-content.php` | User reports click ineffective (investigate JS/Z-index) |
-| **Sidebar Active States** | `dashboard.php` | Dashboard always active, no dynamic highlighting |
+| **Traffic Overview Chart** | `dashboard-content.php` | Hardcoded SVG paths (data available in `window.ZERO_DASHBOARD_DATA`) |
+| ~~**Bulk Checkbox Selection**~~ | ~~`content-list.php`~~ | ✅ **FIXED v2.5.0** — Batch selection/deletion now fully functional |
+| ~~**Media Delete Button**~~ | ~~`media-content.php`~~ | ✅ **FIXED** — Single and batch delete working |
 
 
 ### 🛑 Missing (Critical Gaps)
@@ -1332,19 +1553,26 @@ Password: (set during install)
 | `Core\Database` | PDO wrapper, JSON column helpers, transactions |
 | `Core\Auth` | Session management, login/logout, role checks, remember me |
 | `Core\Migrations` | Version tracking, incremental migrations, upgrade safety |
-| `admin_addon.php` | All `/admin/*` routes, API handlers, RBAC, WebP processing |
-| `frontend_addon.php` | Public routes, smart routing, BlockNote renderer, SEO head |
-| `admin-layout.php` | Master admin layout with dynamic RBAC sidebar |
-| `dashboard-content.php` | Dashboard stats UI |
-| `content-list-content.php` | Content grid with pagination and filters |
-| `media-content.php` | Media Manager UI (drag-drop, search, clipboard) |
+| `admin_addon.php` | Entry point, loads modular files from admin/ directory |
+| `admin/rbac.php` | Role definitions, capability matrix, ownership checks |
+| `admin/api.php` | AJAX handlers, notices, addon settings, metabox, enqueue APIs |
+| `admin/helpers.php` | Content processing, image handling utilities |
+| `admin/renderer.php` | **NEW v2.5.0**: AdminRenderer service for theme-agnostic rendering |
+| `admin/routes.php` | All `/admin/*` route handlers |
+| `frontend_addon.php` | **UPDATED v2.5.0**: Frontend Controller Pattern, $zed_query SSoT, theme globals |
+| `admin-layout.php` | **UPDATED v2.5.0**: Master layout with dark mode toggle, RBAC sidebar |
+| `dashboard-content.php` | **UPDATED v2.5.0**: Pro dashboard with dark mode support |
+| `content-list-content.php` | **UPDATED v2.5.0**: Batch selection, bulk delete, data grid |
+| `media-content.php` | **UPDATED v2.5.0**: Batch selection, multi-delete, drag-drop |
 | `users-content.php` | User Management UI (CRUD, Gravatar, password generator) |
 | `addons-content.php` | Addon Manager (card grid, toggle switches, upload) |
+| `addon-settings-content.php` | Individual addon settings form rendering |
 | `themes-content.php` | Theme Manager (gallery grid, screenshot/color preview) |
 | `settings-content.php` | Unified Settings Panel (General, SEO, System) |
 | `editor.php` | React mount point, save JS logic |
 | `login.php` | Auth form with brute-force protection, remember me |
-| `zero-one/` | Default frontend theme templates |
+| `aurora/` | Modern frontend theme with parts system |
+| `starter-theme/` | Minimal fallback theme |
 | `blocknote-editor.jsx` | React editor component, title sync |
 | `vite.config.js` | Bundle output config |
 

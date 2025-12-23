@@ -317,7 +317,8 @@ if (!function_exists('buildContentUrl')) {
                     const response = await fetch(baseUrl + '/admin/api/batch-delete-content', {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'X-ZED-NONCE': window.ZED_NONCE || ''
                         },
                         body: JSON.stringify({ ids: selected })
                     });

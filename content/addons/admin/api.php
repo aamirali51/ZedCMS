@@ -151,6 +151,100 @@ function zed_render_notices(): string
 }
 
 // =============================================================================
+// OPTIONS API (Core Functions - Authoritative Source)
+// =============================================================================
+
+/**
+ * Get a site option from zed_options table
+ * Results are cached in a static variable to prevent repeated DB queries.
+ *
+ * @param string $name Option name
+ * @param mixed $default Default value if option not found
+ * @return mixed Option value or default
+ */
+function zed_get_option(string $name, mixed $default = ''): mixed
+{
+    static $optionsCache = null;
+    
+    // Load all autoload options on first call (single query)
+    if ($optionsCache === null) {
+        $optionsCache = [];
+        try {
+            $db = Database::getInstance();
+            $rows = $db->query("SELECT option_name, option_value FROM zed_options WHERE autoload = 1");
+            foreach ($rows as $row) {
+                $optionsCache[$row['option_name']] = $row['option_value'];
+            }
+        } catch (\Exception $e) {
+            // Silently fail - use defaults
+        }
+    }
+    
+    // Return cached value if exists
+    if (isset($optionsCache[$name])) {
+        return $optionsCache[$name];
+    }
+    
+    // Not in cache - try individual lookup (for non-autoload options)
+    try {
+        $db = Database::getInstance();
+        $result = $db->queryOne(
+            "SELECT option_value FROM zed_options WHERE option_name = :name",
+            ['name' => $name]
+        );
+        if ($result) {
+            $optionsCache[$name] = $result['option_value'];
+            return $result['option_value'];
+        }
+    } catch (\Exception $e) {
+        // Silently fail
+    }
+    
+    return $default;
+}
+
+/**
+ * Set a site option in zed_options table
+ *
+ * @param string $name Option name
+ * @param mixed $value Option value
+ * @param bool $autoload Whether to autoload this option (default: true)
+ * @return bool Success
+ */
+function zed_set_option(string $name, mixed $value, bool $autoload = true): bool
+{
+    try {
+        $db = Database::getInstance();
+        
+        $valueStr = is_array($value) || is_object($value) ? json_encode($value) : (string)$value;
+        $autoloadInt = $autoload ? 1 : 0;
+        
+        $existing = $db->queryOne(
+            "SELECT id FROM zed_options WHERE option_name = :name",
+            ['name' => $name]
+        );
+        
+        if ($existing) {
+            $db->query(
+                "UPDATE zed_options SET option_value = :value, autoload = :autoload WHERE option_name = :name",
+                ['value' => $valueStr, 'autoload' => $autoloadInt, 'name' => $name]
+            );
+        } else {
+            $db->query(
+                "INSERT INTO zed_options (option_name, option_value, autoload) VALUES (:name, :value, :autoload)",
+                ['name' => $name, 'value' => $valueStr, 'autoload' => $autoloadInt]
+            );
+        }
+        
+        // Clear cache so next get reflects the change
+        // Note: Static cache won't persist across requests anyway
+        return true;
+    } catch (\Exception $e) {
+        return false;
+    }
+}
+
+// =============================================================================
 // ADDON SETTINGS API
 // =============================================================================
 
@@ -218,7 +312,7 @@ function zed_set_addon_option(string $addon_id, string $field_id, mixed $value):
         $key = "addon_{$addon_id}_{$field_id}";
         
         $existing = $db->queryOne(
-            "SELECT id FROM zed_options WHERE option_key = :key",
+            "SELECT id FROM zed_options WHERE option_name = :key",
             ['key' => $key]
         );
         
@@ -226,12 +320,12 @@ function zed_set_addon_option(string $addon_id, string $field_id, mixed $value):
         
         if ($existing) {
             $db->query(
-                "UPDATE zed_options SET option_value = :value WHERE option_key = :key",
+                "UPDATE zed_options SET option_value = :value WHERE option_name = :key",
                 ['value' => $valueStr, 'key' => $key]
             );
         } else {
             $db->query(
-                "INSERT INTO zed_options (option_key, option_value, autoload) VALUES (:key, :value, 0)",
+                "INSERT INTO zed_options (option_name, option_value, autoload) VALUES (:key, :value, 1)",
                 ['key' => $key, 'value' => $valueStr]
             );
         }
@@ -393,7 +487,18 @@ function zed_render_metabox(string $id, array $postData = []): string
     }
     
     $config = $ZED_METABOXES[$id];
-    $meta = $postData['meta'] ?? [];
+    
+    // Extract meta from post data - handles JSON stored in 'data' column
+    $meta = [];
+    if (!empty($postData['data'])) {
+        $data = is_string($postData['data']) 
+            ? json_decode($postData['data'], true) 
+            : $postData['data'];
+        $meta = $data['meta'] ?? [];
+    } elseif (!empty($postData['meta'])) {
+        // Direct meta access fallback
+        $meta = $postData['meta'];
+    }
     
     $html = '<div class="zed-metabox bg-white rounded-lg border border-gray-200 mb-4" data-metabox="' . htmlspecialchars($id) . '">';
     $html .= '<div class="px-4 py-3 border-b border-gray-100">';
@@ -422,24 +527,37 @@ function zed_render_metabox_field(array $field, string $metaboxId, array $meta):
     $description = $field['description'] ?? '';
     $default = $field['default'] ?? '';
     $options = $field['options'] ?? [];
+    $placeholder = $field['placeholder'] ?? '';
+    $rows = $field['rows'] ?? 3;
     
     $value = $meta[$fieldId] ?? $default;
     $name = "meta[{$fieldId}]";
     $inputId = "meta_{$fieldId}";
     
+    // HTML field type - just output the HTML directly
+    if ($type === 'html') {
+        return $field['html'] ?? '';
+    }
+    
     $html = '<div class="space-y-1">';
-    $html .= '<label for="' . $inputId . '" class="block text-xs font-medium text-gray-600">' . htmlspecialchars($label) . '</label>';
+    
+    // Don't show label for certain types
+    if (!in_array($type, ['html'])) {
+        $html .= '<label for="' . $inputId . '" class="block text-xs font-medium text-gray-600">' . htmlspecialchars($label) . '</label>';
+    }
     
     switch ($type) {
         case 'text':
         case 'url':
         case 'email':
         case 'number':
-            $html .= '<input type="' . $type . '" id="' . $inputId . '" name="' . $name . '" value="' . htmlspecialchars((string)$value) . '" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">';
+            $placeholderAttr = $placeholder ? ' placeholder="' . htmlspecialchars($placeholder) . '"' : '';
+            $html .= '<input type="' . $type . '" id="' . $inputId . '" name="' . $name . '" value="' . htmlspecialchars((string)$value) . '"' . $placeholderAttr . ' class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">';
             break;
             
         case 'textarea':
-            $html .= '<textarea id="' . $inputId . '" name="' . $name . '" rows="3" class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">' . htmlspecialchars((string)$value) . '</textarea>';
+            $placeholderAttr = $placeholder ? ' placeholder="' . htmlspecialchars($placeholder) . '"' : '';
+            $html .= '<textarea id="' . $inputId . '" name="' . $name . '" rows="' . intval($rows) . '"' . $placeholderAttr . ' class="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">' . htmlspecialchars((string)$value) . '</textarea>';
             break;
             
         case 'select':
@@ -455,9 +573,31 @@ function zed_render_metabox_field(array $field, string $metaboxId, array $meta):
             $checked = $value ? 'checked' : '';
             $html .= '<input type="checkbox" id="' . $inputId . '" name="' . $name . '" value="1" ' . $checked . ' class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">';
             break;
+            
+        case 'toggle':
+            $isChecked = ($value === true || $value === 'true' || $value === '1' || $value === 1);
+            $html .= '<div class="flex items-center justify-between">';
+            $html .= '<span class="text-sm text-gray-600">' . ($description ?: 'Enable') . '</span>';
+            $html .= '<label class="relative inline-flex items-center cursor-pointer">';
+            $html .= '<input type="checkbox" id="' . $inputId . '" name="' . $name . '" value="true" ' . ($isChecked ? 'checked' : '') . ' class="sr-only peer">';
+            $html .= '<div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[\'\'] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>';
+            $html .= '</label>';
+            $html .= '</div>';
+            $description = ''; // Already used in toggle
+            break;
+            
+        case 'image':
+            $html .= '<div class="flex items-center gap-2">';
+            $html .= '<input type="text" id="' . $inputId . '" name="' . $name . '" value="' . htmlspecialchars((string)$value) . '" placeholder="Image URL or select from media" class="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500">';
+            $html .= '<button type="button" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm rounded-lg" onclick="alert(\'Media library integration coming soon\')">Browse</button>';
+            $html .= '</div>';
+            if ($value) {
+                $html .= '<div class="mt-2"><img src="' . htmlspecialchars((string)$value) . '" class="max-w-[200px] max-h-[100px] rounded border" alt="Preview"></div>';
+            }
+            break;
     }
     
-    if ($description) {
+    if ($description && $type !== 'toggle') {
         $html .= '<p class="text-xs text-gray-400">' . htmlspecialchars($description) . '</p>';
     }
     

@@ -2,20 +2,118 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ================================================
+   BlockNote Editor - Full Width & Responsive
+   ================================================ */
+
+/* Main wrapper - fills available space */
+.blocknote-wrapper {
+  width: 100%;
+  min-height: 100%;
+}
+
+/* Remove all width constraints from BlockNote */
+.blocknote-wrapper .bn-container,
+.blocknote-wrapper .bn-editor,
+.blocknote-wrapper [class*="bn-"] {
+  max-width: 100% !important;
+}
+
+/* Content blocks - centered with max-width for readability */
+.blocknote-wrapper .bn-block-outer {
+  max-width: 100% !important;
+  padding-left: 40px;
+  padding-right: 40px;
+}
+
+.blocknote-wrapper .bn-block-content {
+  max-width: 720px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ================================================
+   BlockNote Theme CSS Variables - Admin Colors
+   Light theme matching Zed CMS admin palette
+   ================================================ */
+.bn-container[data-color-scheme="light"] {
+  --bn-colors-editor-text: #1e293b;
+  /* slate-800 */
+  --bn-colors-editor-background: #ffffff;
+  --bn-colors-menu-text: #334155;
+  /* slate-700 */
+  --bn-colors-menu-background: #ffffff;
+  --bn-colors-tooltip-text: #475569;
+  /* slate-600 */
+  --bn-colors-tooltip-background: #f1f5f9;
+  /* slate-100 */
+  --bn-colors-hovered-text: #1e293b;
+  --bn-colors-hovered-background: #f1f5f9;
+  /* slate-100 */
+  --bn-colors-selected-text: #ffffff;
+  --bn-colors-selected-background: #6366f1;
+  /* primary indigo */
+  --bn-colors-disabled-text: #94a3b8;
+  /* slate-400 */
+  --bn-colors-disabled-background: #f1f5f9;
+  --bn-colors-shadow: #cbd5e1;
+  /* slate-300 */
+  --bn-colors-border: #e2e8f0;
+  /* slate-200 */
+  --bn-colors-side-menu: #94a3b8;
+  /* slate-400 */
+  --bn-font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --bn-border-radius: 8px;
+}
+
+/* Dark theme matching Zed CMS admin dark mode */
+.bn-container[data-color-scheme="dark"] {
+  --bn-colors-editor-text: #e2e8f0;
+  /* slate-200 */
+  --bn-colors-editor-background: #0f172a;
+  /* slate-900 */
+  --bn-colors-menu-text: #e2e8f0;
+  --bn-colors-menu-background: #1e293b;
+  /* slate-800 */
+  --bn-colors-tooltip-text: #cbd5e1;
+  --bn-colors-tooltip-background: #334155;
+  /* slate-700 */
+  --bn-colors-hovered-text: #f1f5f9;
+  --bn-colors-hovered-background: #334155;
+  --bn-colors-selected-text: #ffffff;
+  --bn-colors-selected-background: #6366f1;
+  /* primary indigo */
+  --bn-colors-disabled-text: #64748b;
+  /* slate-500 */
+  --bn-colors-disabled-background: #1e293b;
+  --bn-colors-shadow: #0f172a;
+  --bn-colors-border: #334155;
+  /* slate-700 */
+  --bn-colors-side-menu: #64748b;
+  /* slate-500 */
+  --bn-font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --bn-border-radius: 8px;
+}
+
+/* ================================================
+   ProseMirror Base Styles
+   ================================================ */
 .ProseMirror {
   outline: none;
   min-height: 150px;
 }
 
 .ProseMirror p.is-editor-empty:first-child::before {
-  color: #adb5bd;
+  color: #94a3b8;
   content: attr(data-placeholder);
   float: left;
   height: 0;
   pointer-events: none;
 }
 
-/* Drag Handle Styles */
+/* ================================================
+   Drag Handle Styles
+   ================================================ */
 .drag-handle {
   display: flex;
   align-items: center;
@@ -25,19 +123,19 @@
   cursor: grab;
   border-radius: 4px;
   background: transparent;
-  color: #9ca3af;
+  color: #94a3b8;
   transition: all 0.15s ease;
 }
 
 .drag-handle:hover {
-  background: #f3f4f6;
-  color: #6b7280;
+  background: #f1f5f9;
+  color: #64748b;
 }
 
 .drag-handle:active {
   cursor: grabbing;
-  background: #e5e7eb;
-  color: #374151;
+  background: #e2e8f0;
+  color: #475569;
 }
 
 .drag-handle svg {
@@ -46,8 +144,7 @@
 }
 
 /* ================================================
-   BlockNote Suggestion Menu (Slash Menu) Fixes
-   These override Tailwind's Preflight CSS resets
+   BlockNote Suggestion Menu (Slash Menu)
    ================================================ */
 
 /* Main dropdown container */
@@ -56,13 +153,20 @@
 .mantine-Menu-dropdown,
 .mantine-Popover-dropdown {
   background-color: white !important;
-  border: 1px solid #e5e7eb !important;
+  border: 1px solid #e2e8f0 !important;
   border-radius: 8px !important;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.08) !important;
   padding: 6px !important;
   z-index: 9999 !important;
   max-height: 400px !important;
   overflow-y: auto !important;
+}
+
+/* Dark mode menu */
+[data-mantine-color-scheme="dark"] .mantine-Menu-dropdown,
+[data-mantine-color-scheme="dark"] .mantine-Popover-dropdown {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
 }
 
 /* Menu items */
@@ -84,7 +188,11 @@
 .mantine-Menu-item:hover,
 .bn-suggestion-menu-item[data-selected="true"],
 [data-bn-suggestion-menu-item][data-selected="true"] {
-  background-color: #f3f4f6 !important;
+  background-color: #f1f5f9 !important;
+}
+
+[data-mantine-color-scheme="dark"] .mantine-Menu-item:hover {
+  background-color: #334155 !important;
 }
 
 /* Group labels */
@@ -93,7 +201,7 @@
   font-size: 11px !important;
   font-weight: 600 !important;
   text-transform: uppercase !important;
-  color: #6b7280 !important;
+  color: #64748b !important;
   padding: 8px 12px 4px !important;
   letter-spacing: 0.05em !important;
 }
@@ -103,12 +211,16 @@
 .mantine-Menu-itemLabel {
   font-size: 14px !important;
   font-weight: 500 !important;
-  color: #1f2937 !important;
+  color: #1e293b !important;
+}
+
+[data-mantine-color-scheme="dark"] .mantine-Menu-itemLabel {
+  color: #e2e8f0 !important;
 }
 
 .bn-suggestion-menu-item-subtitle {
   font-size: 12px !important;
-  color: #6b7280 !important;
+  color: #64748b !important;
 }
 
 /* Icons in menu */
@@ -119,7 +231,7 @@
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  color: #6b7280 !important;
+  color: #64748b !important;
 }
 
 /* Keyboard shortcuts */
@@ -127,13 +239,21 @@
 kbd {
   font-size: 11px !important;
   padding: 2px 6px !important;
-  background-color: #f3f4f6 !important;
-  border: 1px solid #e5e7eb !important;
+  background-color: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
   border-radius: 4px !important;
-  color: #6b7280 !important;
+  color: #64748b !important;
 }
 
-/* Scrollbar styling for the menu */
+[data-mantine-color-scheme="dark"] .mantine-Kbd,
+[data-mantine-color-scheme="dark"] kbd {
+  background-color: #334155 !important;
+  border-color: #475569 !important;
+}
+
+/* ================================================
+   Scrollbar styling
+   ================================================ */
 .bn-suggestion-menu::-webkit-scrollbar,
 .mantine-Menu-dropdown::-webkit-scrollbar {
   width: 6px;
@@ -146,11 +266,28 @@ kbd {
 
 .bn-suggestion-menu::-webkit-scrollbar-thumb,
 .mantine-Menu-dropdown::-webkit-scrollbar-thumb {
-  background: #d1d5db;
+  background: #cbd5e1;
   border-radius: 3px;
 }
 
 .bn-suggestion-menu::-webkit-scrollbar-thumb:hover,
 .mantine-Menu-dropdown::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+  background: #94a3b8;
+}
+
+/* ================================================
+   Formatting Toolbar Improvements
+   ================================================ */
+.bn-toolbar,
+.mantine-Tooltip-tooltip {
+  border-radius: 8px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* ================================================
+   Link Toolbar
+   ================================================ */
+.bn-link-toolbar {
+  border-radius: 8px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12) !important;
 }

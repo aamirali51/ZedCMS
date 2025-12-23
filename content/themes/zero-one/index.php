@@ -5,24 +5,12 @@
  */
 
 use Core\Router;
-use Core\Database;
 use Core\Event;
 
 $base_url = Router::getBasePath();
 
-// Fetch recent published posts
-$posts = [];
-try {
-    $db = Database::getInstance();
-    $posts = $db->query(
-        "SELECT * FROM zero_content 
-         WHERE JSON_UNQUOTE(JSON_EXTRACT(data, '$.status')) = 'published'
-         ORDER BY created_at DESC 
-         LIMIT 12"
-    );
-} catch (Exception $e) {
-    $posts = [];
-}
+// Fetch recent published posts using helper function (NO direct SQL in themes!)
+$posts = function_exists('zed_get_latest_posts') ? zed_get_latest_posts(12) : [];
 ?>
 <!DOCTYPE html>
 <html lang="en">
