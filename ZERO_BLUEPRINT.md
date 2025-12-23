@@ -1578,4 +1578,35 @@ Password: (set during install)
 
 ---
 
+## 15. Changelog
+
+### v2.6.0 (2025-12-23)
+
+#### 🐛 Critical Bug Fixes
+- **Frontend Blank Page Fix**: Removed errant `exit;` call in `frontend_addon.php` that was terminating the script before `Router::dispatch()` could return HTML to `App::run()` for output.
+
+#### ✨ New Features
+- **Addon Settings System**: Addons can now register settings via `zed_register_addon_settings()` that appear in `/admin/addon-settings`.
+- **Dynamic Theme Detection**: BlockNote editor now detects light/dark mode from admin panel and adjusts automatically.
+
+#### 🎨 UI Improvements
+- **Editor UI Modernization**: Updated `editor.php` with BlockNote CSS variables matching admin-default theme colors.
+- **BlockNote Refactor**: Removed duplicate title input (sidebar only), added CSS variables for theming.
+- **Responsive Editor Width**: Editor content now uses dynamic width calculation.
+
+### v2.5.0 (2025-12-22)
+
+#### ✨ New Features
+- **Frontend Controller Pattern**: Single Source of Truth (`$zed_query`) for all frontend routing
+- **Professional Dark Mode**: Toggle in admin header, localStorage persistence, FOUC prevention
+- **Batch Operations**: Select-all checkbox, bulk delete for content and media
+- **AdminRenderer Service**: Theme-agnostic rendering for admin pages
+
+#### 🏗 Architecture
+- Modular admin system (`admin/` directory)
+- Organized frontend helpers (`frontend/` directory)
+- Template Library addon
+
+---
+
 *This document is the single source of truth for Zed CMS architecture. Update it as features are implemented.*

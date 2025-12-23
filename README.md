@@ -53,10 +53,12 @@ This means you can replace the **entire Admin Panel** just by disabling one addo
 
 ## 🛠 Features for Developers
 
-### 🧱 Block-Based Editor
-No more `strip_tags()`. Content is saved as structured **JSON blocks** using a customized React Blocks editor (Notion-style).
-*   **Clean Data:** `{ type: "header", level: 1, text: "Hello" }`
+### 🧱 BlockNote Block Editor
+No more `strip_tags()`. Content is saved as structured **JSON blocks** using BlockNote (React-based, Notion-style).
+*   **Clean Data:** `{ type: "paragraph", content: [{ type: "text", text: "Hello" }] }`
 *   **Portability:** Render natively in React, Vue, or iOS apps.
+*   **Theming:** Dynamic light/dark mode, CSS variable support.
+
 
 ### 🖼 Smart Media Pipeline
 Drop a 5MB JPEG? Zed automatically:
