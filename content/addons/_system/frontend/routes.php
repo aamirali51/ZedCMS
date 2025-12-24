@@ -319,28 +319,30 @@ Event::on('route_request', function (array $request): void {
         $afterContent = ob_get_clean();
     }
     
-    // Populate Context Registry (modern alternative to globals)
-    // Themes can use: zed_context()->post('title') instead of global $post
-    if (function_exists('zed_context')) {
-        zed_context()->setMany([
-            'post' => $post,
-            'posts' => $posts,
-            'htmlContent' => $htmlContent,
-            'is_home' => $is_home,
-            'is_single' => $is_single,
-            'is_page' => $is_page,
-            'is_archive' => $is_archive,
-            'is_404' => $is_404,
-            'is_blog' => ($zed_query['type'] === 'archive' && $post_type === 'post'),
-            'post_type' => $post_type,
-            'post_type_label' => $post_type_label,
-            'archive_title' => $archive_title,
-            'current_page' => $page_num,
-            'total_pages' => $total_pages,
-            'total_posts' => $total_posts,
-            'beforeContent' => $beforeContent ?? '',
-            'afterContent' => $afterContent ?? '',
-        ]);
+    // =========================================================================
+    // Set Context (Modern API - v3.1.0+)
+    // =========================================================================
+    
+    // Set the new Core\Context with all request data
+    \Core\Context::set([
+        'type' => $zed_query['type'],
+        'object' => $post,
+        'posts' => $posts,
+        'html_content' => $htmlContent,
+        'pagination' => $zed_query['pagination'],
+        'base_url' => $base_url,
+        'post_type' => $post_type,
+        'post_type_label' => $post_type_label,
+        'archive_title' => $archive_title,
+        'is_blog' => ($zed_query['type'] === 'archive' && $post_type === 'post'),
+        'query' => $zed_query,
+        'beforeContent' => $beforeContent ?? '',
+        'afterContent' => $afterContent ?? '',
+    ]);
+    
+    // Populate legacy global variables for backward compatibility
+    if (function_exists('zed_populate_template_globals')) {
+        zed_populate_template_globals();
     }
     
     // =========================================================================
