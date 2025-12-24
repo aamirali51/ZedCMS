@@ -1,0 +1,560 @@
+.penci-hover-box-grid {
+	--columns: 3;
+	--gap: 30px;
+	display: flex;
+	flex-wrap: wrap;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	gap: var(--gap);
+}
+.penci-hover-box-grid > div {
+	flex: 0 0
+		calc((100% - (var(--gap) * (var(--columns) - 1))) / var(--columns));
+}
+[class*="penci-hvb-position-top"],
+[class*="penci-hvb-position-bottom"],
+[class*="penci-hvb-position-left"],
+[class*="penci-hvb-position-right"],
+[class*="penci-hvb-position-center"] {
+	position: absolute !important;
+	max-width: calc(100% - (var(--penci-hvb-position-margin-offset) * 2));
+	box-sizing: border-box;
+}
+.penci-hvb-position-top {
+	top: 0;
+	left: 0;
+	right: 0;
+}
+.penci-hvb-position-bottom {
+	bottom: 0;
+	left: 0;
+	right: 0;
+}
+.penci-hvb-position-left {
+	top: 0;
+	bottom: 0;
+	left: 0;
+}
+.penci-hvb-position-right {
+	top: 0;
+	bottom: 0;
+	right: 0;
+}
+.penci-hvb-position-top-left {
+	top: 0;
+	left: 0;
+}
+.penci-hvb-position-top-right {
+	top: 0;
+	right: 0;
+}
+.penci-hvb-position-bottom-left {
+	bottom: 0;
+	left: 0;
+}
+.penci-hvb-position-bottom-right {
+	bottom: 0;
+	right: 0;
+}
+.penci-hvb-position-center {
+	top: calc(50% - var(--penci-hvb-position-margin-offset));
+	left: calc(50% - var(--penci-hvb-position-margin-offset));
+	--penci-hvb-position-translate-x: -50%;
+	--penci-hvb-position-translate-y: -50%;
+	transform: translate(
+		var(--penci-hvb-position-translate-x),
+		var(--penci-hvb-position-translate-y)
+	);
+	width: max-content;
+}
+[class*="penci-hvb-position-center-left"],
+[class*="penci-hvb-position-center-right"],
+.penci-hvb-position-center-vertical {
+	top: calc(50% - var(--penci-hvb-position-margin-offset));
+	--penci-hvb-position-translate-y: -50%;
+	transform: translate(0, var(--penci-hvb-position-translate-y));
+}
+.penci-hvb-position-center-left {
+	left: 0;
+}
+.penci-hvb-position-center-right {
+	right: 0;
+}
+.penci-hvb-position-center-vertical {
+	left: 0;
+	right: 0;
+}
+.penci-hvb-position-center-left-out {
+	right: 100%;
+	width: max-content;
+}
+.penci-hvb-position-center-right-out {
+	left: 100%;
+	width: max-content;
+}
+.penci-hvb-position-top-center,
+.penci-hvb-position-bottom-center,
+.penci-hvb-position-center-horizontal {
+	left: calc(50% - var(--penci-hvb-position-margin-offset));
+	--penci-hvb-position-translate-x: -50%;
+	transform: translate(var(--penci-hvb-position-translate-x), 0);
+	width: max-content;
+}
+.penci-hvb-position-top-center {
+	top: 0;
+}
+.penci-hvb-position-bottom-center {
+	bottom: 0;
+}
+.penci-hvb-position-center-horizontal {
+	top: 0;
+	bottom: 0;
+}
+.penci-hvb-position-cover {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+}
+.penci-hvb-position-small {
+	margin: 15px;
+	--penci-hvb-position-margin-offset: 15px;
+}
+.penci-hvb-position-medium {
+	margin: 30px;
+	--penci-hvb-position-margin-offset: 30px;
+}
+.penci-hvb-position-large {
+	margin: 30px;
+	--penci-hvb-position-margin-offset: 30px;
+}
+@media (min-width: 1200px) {
+	.penci-hvb-position-large {
+		margin: 50px;
+		--penci-hvb-position-margin-offset: 50px;
+	}
+}
+.penci-hvb-position-relative {
+	position: relative !important;
+}
+.penci-hvb-position-absolute {
+	position: absolute !important;
+}
+.penci-hvb-position-fixed {
+	position: fixed !important;
+}
+.penci-hvb-position-sticky {
+	position: sticky !important;
+}
+.penci-hover-box {
+	position: relative;
+	overflow: hidden;
+	height: 440px;
+}
+.penci-hover-box:before {
+	content: "";
+	position: absolute;
+	background: rgba(0, 0, 0, 0.3);
+	width: 100%;
+	height: 100%;
+	top: 0;
+	left: 0;
+	z-index: 1;
+	transition: all 0.25s ease;
+}
+.penci-hover-box-img-effect.penci-hvb-effect-1 .penci-hover-box-content {
+	transition: opacity 1.4s cubic-bezier(0.24, 0.85, 0.2, 1);
+}
+.penci-hover-box-img-effect.penci-hvb-effect-1
+	.penci-hover-box-content.active
+	.penci-hover-box-img {
+	transform: scale(1.2);
+	pointer-events: none;
+}
+.penci-hover-box-img-effect.penci-hvb-effect-2
+	.penci-hover-box-content
+	.penci-hover-box-img {
+	transform: scale(1.3);
+}
+.penci-hover-box-img-effect.penci-hvb-effect-2
+	.penci-hover-box-content.active
+	.penci-hover-box-img {
+	transform: scale(1);
+	transition: transform 0.75s cubic-bezier(0.6, -0.28, 0.74, 0.05);
+	pointer-events: none;
+}
+.penci-hover-box-img-effect.penci-hvb-effect-3 .penci-hover-box-content {
+	opacity: 1;
+}
+.penci-hover-box-img-effect.penci-hvb-effect-3
+	.penci-hover-box-content
+	.penci-hover-box-img {
+	transition: 0.8s cubic-bezier(0.9, 0, 0.1, 1);
+	transform: scale(1.2);
+	clip-path: polygon(0 0, 0 0, 0 100%, 0 100%);
+}
+.penci-hover-box-img-effect.penci-hvb-effect-3
+	.penci-hover-box-content.active
+	.penci-hover-box-img {
+	transform: scale(1);
+	clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+}
+.penci-hover-box-item {
+	position: relative;
+	overflow: hidden;
+	padding: 15px;
+	cursor: pointer;
+	border: 1px solid #fff;
+	transition: all 0.25s ease;
+}
+.penci-hover-box-item.active {
+	background: var(--pcaccent-cl);
+	border-color: var(--pcaccent-cl);
+}
+.penci-hover-box-item.active .penci-hover-box-button a {
+	color: var(--pcaccent-cl);
+	background: #fff;
+}
+.penci-hover-box-sub-title {
+	color: #fff;
+	font-size: 12px;
+	margin-bottom: 3px;
+	font-weight: 500;
+	transition: all 0.25s ease;
+}
+.penci-hover-box-title a,
+.post-entry .penci-hover-box-title a {
+	color: #fff;
+	text-decoration: none;
+}
+.penci-hover-box-title {
+	font-size: 16px;
+	font-weight: 700;
+	color: #fff;
+	margin: 0;
+	transition: all 0.25s ease;
+}
+.penci-hover-box-item.active .penci-hover-box-title,
+.penci-hover-box-item.active .penci-hover-box-title a {
+	color: #fff;
+}
+.penci-hover-box-text {
+	color: #fff;
+	font-size: 14px;
+	line-height: 1.5em;
+	padding-top: 10px;
+	transition: all 0.25s ease;
+}
+.penci-hover-box-text p {
+	margin: 0;
+}
+.penci-hover-box-button {
+	display: block;
+	position: relative;
+	padding-top: 20px;
+}
+.post-entry .penci-hover-box-button a,
+.penci-hover-box-button a {
+	font-size: 12px;
+	font-weight: 600;
+	color: #fff;
+	padding: 10px 15px;
+	background: var(--pcaccent-cl);
+	border-radius: 3px;
+	transition: all 0.25s ease;
+}
+.post-entry .penci-hover-box-button a:hover,
+.penci-hover-box-button a:hover {
+	text-decoration: none;
+}
+.penci-hover-box-icon-wrap {
+	font-size: 70px;
+	color: #fff;
+	display: inline-flex;
+	transition: all 0.25s ease;
+	position: absolute;
+	right: -20px;
+	bottom: -20px;
+}
+.penci-hover-box-icon-wrap i,
+.penci-hover-box-icon-wrap svg {
+	transition: all 0.25s ease;
+}
+.penci-hover-box-icon-wrap svg {
+	width: 1em;
+	height: 1em;
+	fill: #fff;
+}
+.penci-hover-box-style-1 .penci-hover-box-icon-wrap {
+	color: rgba(255, 255, 255, 0.5);
+}
+.penci-hover-box-style-1 .penci-hover-box-icon-wrap svg {
+	fill: rgba(255, 255, 255, 0.5);
+}
+.penci-hover-box-item-wrap {
+	position: relative;
+	max-width: 300px;
+	z-index: 1;
+}
+.penci-hover-box-content {
+	opacity: 0;
+}
+.penci-hover-box-content.active {
+	opacity: 1;
+}
+.penci-hover-box-img {
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	background-size: cover;
+	background-position: center;
+	transition: transform 1.4s cubic-bezier(0.24, 0.85, 0.2, 1);
+}
+.penci-hover-box-skin-envelope .penci-hover-box-grid {
+	width: 100%;
+}
+.penci-hover-box-skin-envelope .penci-hvb-column-divider {
+	width: 100%;
+	column-gap: 0;
+}
+.penci-hover-box-skin-envelope .penci-hover-box-item {
+	height: 440px;
+	border: 0;
+}
+.penci-hover-box-skin-envelope .penci-hover-box-item.active {
+	background: rgb(from var(--pcaccent-cl) r g b / 0.7);
+}
+.penci-hover-box-skin-envelope .penci-hover-box-description {
+	width: 100%;
+}
+.penci-hover-box-skin-envelope
+	.penci-hover-box-description.penci-hvb-position-top
+	.penci-hover-box-icon-wrap,
+.penci-hover-box-skin-envelope
+	.penci-hover-box-description.penci-hvb-position-bottom
+	.penci-hover-box-icon-wrap {
+	right: -40px;
+	bottom: -40px;
+}
+.penci-hover-box-skin-envelope
+	.penci-hover-box-description.penci-hvb-position-center
+	.penci-hover-box-icon-wrap {
+	right: -40px;
+}
+.penci-hover-box-skin-envelope .penci-hover-box-item-wrap {
+	max-width: inherit;
+}
+.penci-hover-box-skin-envelope
+	.penci-hover-box-item-wrap
+	> .penci-hvb-active:before {
+	content: "";
+	position: absolute;
+	height: 100%;
+	width: 1px;
+	background: #fff;
+	top: 0;
+	left: -0.5px;
+	z-index: 1;
+}
+.penci-hover-box-skin-envelope
+	.penci-hover-box-item-wrap
+	> .penci-hvb-active:nth-child(1):before {
+	width: 0px !important;
+}
+.penci-hover-box-skin-envelope .penci-hvb-slidenav {
+	color: #fff;
+	z-index: 1;
+}
+.penci-hover-box-skin-envelope .penci-hvb-slidenav svg {
+	width: 1em;
+}
+@media (min-width: 768px) {
+	.penci-hover-box {
+		height: 540px;
+	}
+	.penci-hover-box-skin-envelope .penci-hover-box-item {
+		height: 540px;
+	}
+	.penci-hover-box-item-wrap {
+		max-width: 640px;
+	}
+	.penci-hover-box-item {
+		padding: 20px;
+	}
+	.penci-hover-box-icon-wrap {
+		font-size: 100px;
+	}
+	.penci-hover-box-sub-title {
+		font-size: 16px;
+	}
+	.penci-hover-box-title {
+		font-size: 24px;
+	}
+	.penci-hover-box-text {
+		font-size: 16px;
+		padding-top: 15px;
+	}
+	.penci-hover-box-button {
+		padding-top: 30px;
+	}
+	.penci-hover-box-button a {
+		font-size: 14px;
+		padding: 8px 16px;
+	}
+}
+.penci-hover-box-style-2 .penci-hover-box-item {
+	padding: 20px;
+	border: 0;
+	text-align: center;
+}
+.penci-hover-box-style-2 .penci-hover-box-item.active {
+	background: transparent;
+	border-color: transparent;
+}
+.penci-hover-box-style-2
+	.penci-hover-box-item.active
+	.penci-hover-box-button
+	a {
+	color: #fff;
+	background: var(--pcaccent-cl);
+}
+.penci-hover-box-style-2
+	.penci-hover-box-item.active
+	.penci-hover-box-button
+	a:hover {
+	color: var(--pcaccent-cl);
+	background: #fff;
+}
+.penci-hover-box-style-2 .penci-hover-box-item.active .penci-hover-box-text,
+.penci-hover-box-style-2 .penci-hover-box-item.active .penci-hover-box-button,
+.penci-hover-box-style-2
+	.penci-hover-box-item.active
+	.penci-hover-box-icon-wrap,
+.penci-hover-box-style-2
+	.penci-hover-box-item.active
+	.penci-hover-box-sub-title {
+	opacity: 1;
+	transform: translateY(0);
+}
+.penci-hover-box-style-2 .penci-hover-box-item.active .penci-hover-box-text,
+.penci-hover-box-style-2
+	.penci-hover-box-item.active
+	.penci-hover-box-sub-title {
+	transition-delay: 0.3s;
+}
+.penci-hover-box-style-2 .penci-hover-box-item.active .penci-hover-box-button,
+.penci-hover-box-style-2
+	.penci-hover-box-item.active
+	.penci-hover-box-icon-wrap {
+	transition-delay: 0.4s;
+}
+.penci-hover-box-style-2
+	.penci-hover-box-item:hover
+	.penci-hover-box-icon-wrap
+	svg {
+	transform: rotate(0) !important;
+}
+.penci-hover-box-style-2 .penci-hover-box-item:hover .penci-hover-box-text,
+.penci-hover-box-style-2 .penci-hover-box-item:hover .penci-hover-box-button,
+.penci-hover-box-style-2 .penci-hover-box-item:hover .penci-hover-box-icon-wrap,
+.penci-hover-box-style-2
+	.penci-hover-box-item:hover
+	.penci-hover-box-sub-title {
+	opacity: 1;
+	transform: translateY(0);
+}
+.penci-hover-box-style-2 .penci-hover-box-item:hover .penci-hover-box-text,
+.penci-hover-box-style-2
+	.penci-hover-box-item:hover
+	.penci-hover-box-sub-title {
+	transition-delay: 0.3s;
+}
+.penci-hover-box-style-2 .penci-hover-box-item:hover .penci-hover-box-button,
+.penci-hover-box-style-2
+	.penci-hover-box-item:hover
+	.penci-hover-box-icon-wrap {
+	transition-delay: 0.4s;
+}
+.penci-hover-box-style-2 .penci-hover-box-icon-wrap {
+	position: unset;
+	font-size: 24px;
+	opacity: 1;
+	padding: 14px;
+	border-radius: 50%;
+	margin: 0 0 20px;
+	background-color: var(--pcaccent-cl);
+	justify-content: center;
+  	align-items: center;
+	width: 60px;
+	height: 60px;
+}
+.penci-hover-box-style-2 .penci-hover-box-icon-wrap svg {
+	fill: #fff;
+}
+.penci-hover-box-style-2 .penci-hover-box-sub-title,
+.penci-hover-box-style-2 .penci-hover-box-icon-wrap {
+	opacity: 0;
+	transform: translateY(-30px);
+	transition: all 0.3s ease;
+}
+.penci-hover-box-style-2 .penci-hover-box-text,
+.penci-hover-box-style-2 .penci-hover-box-button {
+	opacity: 0;
+	transform: translateY(30px);
+	transition: all 0.3s ease;
+}
+.penci-hover-box-style-2 .penci-hover-box-button a {
+	color: #fff;
+	background: var(--pcaccent-cl);
+}
+.penci-hover-box-style-2 .pchvb-meta a {
+	color: #fff;
+}
+@media (min-width: 1024px) {
+	.penci-hover-box {
+		height: 900px;
+	}
+	.penci-hover-box-skin-envelope .penci-hover-box-item {
+		height: 900px;
+	}
+	.penci-hover-box-item {
+		padding: 40px;
+	}
+	.penci-hover-box-item-wrap {
+		max-width: 1080px;
+	}
+	.penci-hover-box-icon-wrap {
+		font-size: 140px;
+	}
+}
+.pchvb-meta {
+	font-size: 12px;
+	border-bottom: 1px var(--pcborder-cl);
+	padding-bottom: 0;
+	margin-bottom: 10px;
+	color: #fff;
+	line-height: 1.2;
+}
+.post-entry .pchvb-meta a,
+.pchvb-meta a {
+	color: rgba(255, 255, 255, 0.8);
+	font-weight: bold;
+	text-decoration: none;
+}
+.penci-hover-box-item.active .pchvb-meta a,
+.post-entry .penci-hover-box-item.active .pchvb-meta a {
+	color: #fff;
+}
+.pchvb-meta .pcbg-meta-desc {
+	display: flex;
+	flex-wrap: wrap;
+	column-gap: 15px;
+}
+.penci-hover-box-style-1 .penci-hover-box-item {
+	height: 100%;
+}
+.penci-hover-box-style-2 .penci-hover-box-item .pchvb-meta .pcbg-meta-desc {
+	justify-content: center;
+}

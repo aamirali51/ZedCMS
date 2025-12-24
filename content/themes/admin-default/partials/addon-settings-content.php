@@ -1,62 +1,73 @@
 <?php
 /**
- * Addon Settings Content Partial
+ * Addon Settings List Partial
+ * 
+ * Displays a list of addons that have registered settings.
  * 
  * Variables available:
- * - $addon_settings_id: string Addon identifier
- * - $addon_settings_config: array Configuration with title, description, fields
+ * - $addonSettings: array List of registered addon settings
  */
 
-$title = $addon_settings_config['title'] ?? 'Addon Settings';
-$description = $addon_settings_config['description'] ?? '';
-$fields = $addon_settings_config['fields'] ?? [];
 $base_url = \Core\Router::getBasePath();
 ?>
 
-<div class="max-w-3xl">
+<div class="max-w-5xl">
     <!-- Header -->
     <div class="mb-8">
-        <div class="flex items-center gap-3 mb-2">
-            <a href="<?= $base_url ?>/admin/addons" class="text-gray-400 hover:text-gray-600">
-                <span class="material-symbols-outlined">arrow_back</span>
-            </a>
-            <h1 class="text-2xl font-bold text-gray-900"><?= htmlspecialchars($title) ?></h1>
-        </div>
-        <?php if ($description): ?>
-            <p class="text-gray-600"><?= htmlspecialchars($description) ?></p>
-        <?php endif; ?>
+        <h1 class="text-2xl font-bold text-gray-900 mb-2">Addon Settings</h1>
+        <p class="text-gray-600">Configure settings for your installed addons.</p>
     </div>
 
-    <!-- Settings Form -->
-    <form method="POST" class="bg-white rounded-xl border border-gray-200 shadow-sm">
-        <div class="p-6 border-b border-gray-100">
-            <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                <span class="material-symbols-outlined text-indigo-500">tune</span>
-                Configuration
-            </h2>
-        </div>
-        
-        <div class="p-6 space-y-6">
-            <?php if (empty($fields)): ?>
-                <p class="text-gray-500 text-center py-8">No settings configured for this addon.</p>
-            <?php else: ?>
-                <?php foreach ($fields as $field): ?>
-                    <?= zed_render_settings_field($field, $addon_settings_id) ?>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </div>
-        
-        <?php if (!empty($fields)): ?>
-            <div class="px-6 py-4 bg-gray-50 border-t border-gray-100 rounded-b-xl flex items-center justify-between">
-                <span class="text-sm text-gray-500">
-                    <span class="material-symbols-outlined text-sm align-middle">info</span>
-                    Settings are saved to the database.
-                </span>
-                <button type="submit" class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors">
-                    <span class="material-symbols-outlined text-lg">save</span>
-                    Save Settings
-                </button>
+    <!-- Alert for no settings -->
+    <?php if (empty($addonSettings)): ?>
+        <div class="bg-white rounded-xl border border-gray-200 p-12 text-center">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
+                <span class="material-symbols-outlined text-3xl text-gray-400">extension_off</span>
             </div>
-        <?php endif; ?>
-    </form>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">No Configurable Addons</h3>
+            <p class="text-gray-500 max-w-md mx-auto mb-6">
+                None of your active addons have registered any settings pages.
+            </p>
+            <a href="<?= $base_url ?>/admin/addons" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors">
+                <span class="material-symbols-outlined">extension</span>
+                Manage Addons
+            </a>
+        </div>
+    <?php else: ?>
+        <!-- Settings Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <?php foreach ($addonSettings as $id => $config): ?>
+                <a href="<?= $base_url ?>/admin/addon-settings/<?= htmlspecialchars($id) ?>" 
+                   class="group bg-white rounded-xl border border-gray-200 hover:border-indigo-500 hover:shadow-md transition-all p-6 block">
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="w-12 h-12 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                            <span class="material-symbols-outlined text-2xl">tune</span>
+                        </div>
+                        <span class="material-symbols-outlined text-gray-300 group-hover:text-indigo-500 transition-colors">arrow_forward</span>
+                    </div>
+                    
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2 group-hover:text-indigo-600 transition-colors">
+                        <?= htmlspecialchars($config['title']) ?>
+                    </h3>
+                    
+                    <?php if (!empty($config['description'])): ?>
+                        <p class="text-sm text-gray-500 line-clamp-2 mb-4">
+                            <?= htmlspecialchars($config['description']) ?>
+                        </p>
+                    <?php endif; ?>
+                    
+                    <div class="flex items-center gap-2 text-xs font-medium text-gray-400">
+                        <span class="bg-gray-100 px-2 py-0.5 rounded text-gray-600">
+                            <?= count($config['fields'] ?? []) ?> settings
+                        </span>
+                        <?php if (!empty($config['capability'])): ?>
+                            <span class="bg-gray-100 px-2 py-0.5 rounded text-gray-600" title="Required Capability">
+                                <?= htmlspecialchars($config['capability']) ?>
+                            </span>
+                        <?php endif; ?>
+                    </div>
+                </a>
+            <?php endforeach; ?>
+        </div>
+    <?php endif; ?>
 </div>

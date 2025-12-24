@@ -33,10 +33,10 @@ if (!isset($activeTheme)) $activeTheme = 'starter-theme';
     <!-- Theme Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         <?php foreach ($themes as $theme): 
-            $isActive = $theme['folder'] === $activeTheme;
+            $isActive = $theme['slug'] === $activeTheme;
         ?>
         <div class="theme-card relative bg-white rounded-xl border-2 overflow-hidden transition-all duration-200 hover:shadow-lg group <?= $isActive ? 'border-green-500 ring-2 ring-green-500/20' : 'border-gray-200 hover:border-gray-300' ?>"
-             data-folder="<?= htmlspecialchars($theme['folder']) ?>">
+             data-folder="<?= htmlspecialchars($theme['slug']) ?>">
             
             <!-- Active Banner -->
             <?php if ($isActive): ?>

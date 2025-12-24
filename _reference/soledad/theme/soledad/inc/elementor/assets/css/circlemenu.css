@@ -1,0 +1,74 @@
+.penci-circle-menu-container {
+	z-index: 99;
+	position: relative;
+	-webkit-transform: translate(
+		0,
+		0
+	);
+	transform: translate(
+		0,
+		0
+	);
+}
+.penci-circle-menu-container .penci-cmenu-menu-icon {
+	font-size: 14px;
+}
+.penci-circle-menu-container .penci-cmenu-menu-icon svg {
+	width: 1em;
+	height: 1em;
+}
+.penci-circle-menu li {
+	background: #000;
+	color: #fff;
+	font-size: 25px;
+}
+.penci-circle-menu li.penci-cmenu-toggle-icon {
+	display: block !important;
+	width: 50px !important;
+	height: 50px !important;
+	text-align: center !important;
+	line-height: 50px !important;
+	position: relative !important;
+	z-index: 1000 !important;
+	border-radius: 50% !important;
+	transition: all 500ms ease !important;
+	vertical-align: middle;
+	transform-origin: center;
+	background: #1e87f0;
+	color: #fff;
+}
+.penci-cmenu-item {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.penci-cmenu-icon {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+.penci-circle-menu li a {
+	text-decoration: none !important;
+	color: #fff;
+	width: 100%;
+	height: 100%;
+}
+.penci-circle-menu li a svg {
+	display: inline-block;
+	width: 1em;
+	height: 1em;
+	fill: #fff;
+}
+.penci-circle-menu li a i {
+	font-size: 12px;
+}
+.penci-circle-menu li span {
+	display: inline-flex;
+}
+.penci-circle-menu:not(.circleMenu-closed) li {
+	display: none;
+}
+.penci-circle-menu.circleMenu-open > li:first-child {
+	transform: rotate(360deg);
+	transform-origin: center;
+}

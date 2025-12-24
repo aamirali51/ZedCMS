@@ -786,14 +786,29 @@ $debug_mode = $options['debug_mode'] ?? '0';
         // Collect all values
         const data = {};
         
-        // Text inputs and textareas
+        // Text inputs and textareas from General tab
         document.querySelectorAll('#panel-general input, #panel-general textarea, #panel-general select').forEach(input => {
             if (input.type !== 'radio' && input.name) {
                 data[input.name] = input.value;
             }
         });
         
+        // SEO tab inputs
         document.querySelectorAll('#panel-seo input, #panel-seo textarea, #panel-seo select').forEach(input => {
+            if (input.name) {
+                data[input.name] = input.value;
+            }
+        });
+        
+        // Theme tab inputs (FIX: This was missing before!)
+        document.querySelectorAll('#panel-theme input, #panel-theme textarea, #panel-theme select').forEach(input => {
+            if (input.name) {
+                data[input.name] = input.value;
+            }
+        });
+        
+        // System tab inputs
+        document.querySelectorAll('#panel-system input, #panel-system textarea, #panel-system select').forEach(input => {
             if (input.name) {
                 data[input.name] = input.value;
             }
@@ -809,6 +824,11 @@ $debug_mode = $options['debug_mode'] ?? '0';
             data[toggle.dataset.setting] = toggle.dataset.value;
         });
         
+        // DEBUG: Log what we're sending
+        console.log('=== SETTINGS SAVE DEBUG ===');
+        console.log('Sending data:', JSON.stringify(data, null, 2));
+        console.log('Theme settings in payload:', Object.keys(data).filter(k => k.startsWith('theme_')));
+        
         try {
             const response = await fetch(API_SAVE, {
                 method: 'POST',
@@ -820,6 +840,9 @@ $debug_mode = $options['debug_mode'] ?? '0';
             });
             
             const result = await response.json();
+            
+            // DEBUG: Log response
+            console.log('Save response:', result);
             
             if (result.success) {
                 hasChanges = false;

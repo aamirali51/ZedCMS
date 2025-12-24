@@ -1,7 +1,6 @@
-import "@blocknote/core/fonts/inter.css";
+// CSS is imported centrally in main.jsx
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
-import "@blocknote/mantine/style.css";
 import { MantineProvider } from "@mantine/core";
 import { useState, useEffect, useCallback } from "react";
 

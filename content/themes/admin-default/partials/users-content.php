@@ -504,7 +504,8 @@ function getRoleBadge(string $role): array {
             id: userId.value || null,
             email: userEmail.value.trim(),
             password: userPassword.value,
-            role: userRole.value
+            role: userRole.value,
+            nonce: window.ZED_NONCE || ''
         };
         
         // Validate
@@ -550,7 +551,7 @@ function getRoleBadge(string $role): array {
             const response = await fetch(API_DELETE, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ id: id })
+                body: JSON.stringify({ id: id, nonce: window.ZED_NONCE || '' })
             });
             
             const result = await response.json();

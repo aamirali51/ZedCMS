@@ -1,7 +1,7 @@
 # Zed CMS — Feature Guide
 
 > **A Simple Guide to Every Feature in Zed CMS**  
-> Last Updated: 2025-12-23 | Version 2.6.0
+> Last Updated: 2025-12-25 | Version 3.0.1
 
 ---
 
@@ -102,6 +102,7 @@ Organized in tabs:
 - Toggle addons on/off with switches
 - Upload new addons (`.php` files)
 - System addons can't be disabled
+- **NEW v3.0.1:** Addon menus auto-hide when disabled
 
 ### 10. Themes (`/admin/themes`)
 - Preview installed themes
@@ -157,6 +158,70 @@ Event::on('route_request', function($request) {
     }
 });
 ```
+
+### Admin Menu Registration API (NEW v3.0.1)
+
+The easiest way to add admin pages:
+
+```php
+// Register a menu with automatic routing
+zed_register_admin_menu([
+    'id' => 'my_addon',
+    'title' => 'My Addon',
+    'icon' => 'settings',
+    'capability' => 'manage_options',
+    'position' => 55,
+    'badge' => '3',
+    'callback' => function() {
+        echo '<h1>My Addon Dashboard</h1>';
+    }
+]);
+
+// Register a submenu
+zed_register_admin_submenu('my_addon', [
+    'id' => 'my_addon_settings',
+    'title' => 'Settings',
+    'callback' => fn() => echo '<h1>Settings</h1>'
+]);
+```
+
+**Features:**
+- ✅ Automatic route registration (`/admin/my_addon`)
+- ✅ Automatic permission checks
+- ✅ Automatic admin layout wrapping
+- ✅ Auto-hides when addon disabled
+
+[📖 Full API Documentation](content/docs/03-developer-api/admin-menu-api.md)
+
+### Route Registration API (NEW v3.0.1)
+
+For custom routes and API endpoints:
+
+```php
+// Basic route
+zed_register_route([
+    'path' => '/admin/my-page',
+    'callback' => fn() => '<h1>My Page</h1>'
+]);
+
+// Pattern matching
+zed_register_route([
+    'path' => '/admin/reports/{type}',
+    'callback' => function($request, $uri, $params) {
+        return "<h1>Report: {$params['type']}</h1>";
+    }
+]);
+
+// API endpoint (no layout)
+zed_register_route([
+    'path' => '/admin/api/my-action',
+    'method' => 'POST',
+    'wrap_layout' => false,
+    'callback' => fn() => json_encode(['success' => true])
+]);
+```
+
+[📖 Full API Documentation](content/docs/03-developer-api/admin-menu-api.md)
 
 ### Available Hooks
 

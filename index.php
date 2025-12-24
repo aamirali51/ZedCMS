@@ -5,11 +5,15 @@ declare(strict_types=1);
 /**
  * Zed CMS Entry Point
  * 
- * This file does ONLY four things:
+ * This file does ONLY five things:
  * 1. Loads the configuration
- * 2. Autoloads classes in /core
- * 3. Loads all addons
- * 4. Initializes the App class
+ * 2. Autoloads classes in /core (Core namespace)
+ * 3. Autoloads addon classes (Addons namespace)
+ * 4. Loads system modules and addons
+ * 5. Initializes the App class
+ * 
+ * @package ZedCMS
+ * @version 3.0.0
  */
 
 // 1. Load configuration
@@ -23,83 +27,111 @@ if (!file_exists(__DIR__ . '/config.php')) {
 
 $config = require __DIR__ . '/config.php';
 
-// 2. Autoload classes in /core (PSR-4 style autoloader)
+// 2. Autoload classes in /core (PSR-4 style autoloader for Core namespace)
 spl_autoload_register(function (string $class): void {
-    // Convert namespace separator to directory separator
     // Core\App -> core/App.php
     $prefix = 'Core\\';
     $baseDir = __DIR__ . '/core/';
 
-    // Check if the class uses the Core namespace
     $len = strlen($prefix);
     if (strncmp($prefix, $class, $len) !== 0) {
         return;
     }
 
-    // Get the relative class name
     $relativeClass = substr($class, $len);
-
-    // Build the file path
     $file = $baseDir . str_replace('\\', '/', $relativeClass) . '.php';
 
-    // Require the file if it exists
     if (file_exists($file)) {
         require $file;
     }
 });
 
-// 3. Load all addons from content/addons
+// 3. Autoload addon classes (PSR-4 style autoloader for Addons namespace)
+// Allows addons to define classes like: Addons\ZedSEO\SitemapGenerator
+spl_autoload_register(function (string $class): void {
+    // Addons\ZedSEO\SitemapGenerator -> content/addons/zed_seo/src/SitemapGenerator.php
+    $prefix = 'Addons\\';
+    $baseDir = __DIR__ . '/content/addons/';
+    
+    $len = strlen($prefix);
+    if (strncmp($prefix, $class, $len) !== 0) {
+        return;
+    }
+    
+    $relativeClass = substr($class, $len);
+    $parts = explode('\\', $relativeClass);
+    
+    if (count($parts) < 2) {
+        return;
+    }
+    
+    // Convert AddonName to addon_name (PascalCase to snake_case)
+    $addonName = strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $parts[0]));
+    $className = implode('/', array_slice($parts, 1));
+    
+    // Try src/ subdirectory first, then root
+    $file = $baseDir . $addonName . '/src/' . $className . '.php';
+    if (file_exists($file)) {
+        require $file;
+        return;
+    }
+    
+    $file = $baseDir . $addonName . '/' . $className . '.php';
+    if (file_exists($file)) {
+        require $file;
+    }
+});
+
+// 4. Load system modules and addons from content/addons
 $addonsDir = __DIR__ . '/content/addons';
 
 /**
  * ==========================================================================
- * SYSTEM ADDONS CONFIGURATION
+ * SYSTEM MODULES CONFIGURATION
  * ==========================================================================
  * 
- * System addons are core to Zed CMS functionality and cannot be disabled.
+ * System modules are core to Zed CMS functionality and cannot be disabled.
  * They are loaded FIRST to ensure proper event priority and are protected
  * from accidental removal.
  * 
- * FUTURE ADDON MANAGER:
- * ---------------------
- * When implementing the Addon Manager UI, these system addons should be:
+ * STRUCTURE:
+ * -----------
+ * content/addons/_system/
+ * ├── admin.php      — Admin panel, authentication, RBAC
+ * │   └── admin/     — Admin sub-modules (rbac, api, helpers, renderer, routes)
+ * └── frontend.php   — Public routing, theming, content rendering
+ *     └── frontend/  — Frontend sub-modules (options, post_types, theme_api, etc.)
  * 
- * 1. VISIBLE in the addons list (so users know they exist)
- * 2. Rendered with a LOCKED state:
- *    - Display a "System" badge instead of version
- *    - Disable button should be REMOVED or GREYED OUT
- *    - Delete button should be HIDDEN completely
- *    - Show tooltip: "System addon - required for core functionality"
- * 
- * 3. Load order matters:
- *    - admin_addon.php (priority 10) - handles /admin/* routes
- *    - frontend_addon.php (priority 100) - handles /{slug} routes as fallback
- * 
- * To add a new system addon:
- *    1. Add filename to $system_addons array below
- *    2. Add require_once in the "Force Load" section
- *    3. Update the Addons Manager UI to recognize the new addon
+ * ADDON MANAGER UI:
+ * -----------------
+ * When implementing the Addon Manager, system modules should be:
+ * 1. VISIBLE with a "System" badge
+ * 2. Cannot be disabled or deleted
+ * 3. Show tooltip: "System module - required for core functionality"
  * 
  * ==========================================================================
  */
 
-// Define protected system addons (cannot be disabled via UI)
-$system_addons = [
-    'admin_addon.php',      // Core admin panel functionality
-    'frontend_addon.php',   // Public content rendering
+// Define protected system modules (cannot be disabled via UI)
+$system_modules = [
+    '_system/admin.php',      // Core admin panel functionality
+    '_system/frontend.php',   // Public content rendering
 ];
 
-// Make system addons globally accessible for Addon Manager
-define('ZERO_SYSTEM_ADDONS', $system_addons);
+// Make system modules globally accessible
+define('ZED_SYSTEM_MODULES', $system_modules);
+
+// Legacy constant for backward compatibility
+define('ZERO_SYSTEM_ADDONS', ['admin_addon.php', 'frontend_addon.php']);
 
 if (is_dir($addonsDir)) {
     // ─────────────────────────────────────────────────────────────────────
-    // PHASE 1: Force load system addons FIRST (in defined order)
+    // PHASE 1: Load system modules FIRST (in defined order)
     // ─────────────────────────────────────────────────────────────────────
-    foreach ($system_addons as $systemAddon) {
-        $systemAddonPath = $addonsDir . '/' . $systemAddon;
-        if (file_exists($systemAddonPath)) {
-            require_once $systemAddonPath;
+    foreach ($system_modules as $systemModule) {
+        $systemModulePath = $addonsDir . '/' . $systemModule;
+        if (file_exists($systemModulePath)) {
+            require_once $systemModulePath;
         }
     }
     
@@ -141,13 +173,18 @@ if (is_dir($addonsDir)) {
     }
     
     // ─────────────────────────────────────────────────────────────────────
-    // Load single-file addons: addons/*.php
+    // Load single-file addons: addons/*.php (excluding _system directory)
     // ─────────────────────────────────────────────────────────────────────
     foreach (glob($addonsDir . '/*.php') as $addonFile) {
         $addonBasename = basename($addonFile);
         
-        // Skip system addons - they're already loaded above
-        if (in_array($addonBasename, $system_addons, true)) {
+        // Skip legacy system addons (if they still exist during migration)
+        if (in_array($addonBasename, ['admin_addon.php', 'frontend_addon.php'], true)) {
+            continue;
+        }
+        
+        // Skip system modules - they're already loaded above
+        if (str_starts_with($addonBasename, '_system')) {
             continue;
         }
         
@@ -165,9 +202,8 @@ if (is_dir($addonsDir)) {
     foreach (glob($addonsDir . '/*/addon.php') as $addonFile) {
         $folderName = basename(dirname($addonFile));
         
-        // Skip if folder name matches a system addon (without .php)
-        $folderAsPHP = $folderName . '.php';
-        if (in_array($folderAsPHP, $system_addons, true)) {
+        // Skip _system folder and legacy folders
+        if ($folderName === '_system' || in_array($folderName, ['admin', 'frontend'], true)) {
             continue;
         }
         
@@ -180,7 +216,6 @@ if (is_dir($addonsDir)) {
     }
 }
 
-// 4. Initialize and run the App
+// 5. Initialize and run the App
 $app = new \Core\App($config);
 $app->run();
-

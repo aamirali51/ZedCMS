@@ -155,88 +155,49 @@ $types = !empty($ZED_POST_TYPES) ? $ZED_POST_TYPES : [
         }
         
         /* ================================================
-           BlockNote Theme Variables - Match Admin Colors
+           TipTap Editor Theme - Clean & Minimal
            ================================================ */
-        .bn-container[data-color-scheme="light"] {
-            --bn-colors-editor-text: #1e293b;
-            --bn-colors-editor-background: #ffffff;
-            --bn-colors-menu-text: #334155;
-            --bn-colors-menu-background: #ffffff;
-            --bn-colors-tooltip-text: #475569;
-            --bn-colors-tooltip-background: #f1f5f9;
-            --bn-colors-hovered-text: #1e293b;
-            --bn-colors-hovered-background: #f1f5f9;
-            --bn-colors-selected-text: #ffffff;
-            --bn-colors-selected-background: #6366f1;
-            --bn-colors-disabled-text: #94a3b8;
-            --bn-colors-disabled-background: #f1f5f9;
-            --bn-colors-shadow: #cbd5e1;
-            --bn-colors-border: #e2e8f0;
-            --bn-colors-side-menu: #94a3b8;
-            --bn-font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            --bn-border-radius: 8px;
-        }
         
-        .bn-container[data-color-scheme="dark"] {
-            --bn-colors-editor-text: #e2e8f0;
-            --bn-colors-editor-background: #0f172a;
-            --bn-colors-menu-text: #e2e8f0;
-            --bn-colors-menu-background: #1e293b;
-            --bn-colors-tooltip-text: #cbd5e1;
-            --bn-colors-tooltip-background: #334155;
-            --bn-colors-hovered-text: #f1f5f9;
-            --bn-colors-hovered-background: #334155;
-            --bn-colors-selected-text: #ffffff;
-            --bn-colors-selected-background: #6366f1;
-            --bn-colors-disabled-text: #64748b;
-            --bn-colors-disabled-background: #1e293b;
-            --bn-colors-shadow: #0f172a;
-            --bn-colors-border: #334155;
-            --bn-colors-side-menu: #64748b;
-            --bn-font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            --bn-border-radius: 8px;
-        }
-        
-        /* BlockNote Editor Styling */
+        /* Editor Container */
         #tiptap-editor {
-            /* Dynamic width: viewport - sidebar width - some padding */
             width: 100%;
             max-width: calc(100vw - 340px);
             min-height: calc(100vh - 56px);
             padding: 40px 24px;
             box-sizing: border-box;
         }
-
         
         .editor-layout.panel-hidden #tiptap-editor {
             max-width: 100vw;
         }
         
-        /* Override ALL BlockNote internal width constraints */
-        #tiptap-editor [class*="bn-"],
-        #tiptap-editor [data-node-type],
-        #tiptap-editor .ProseMirror,
-        #tiptap-editor > div,
-        #tiptap-editor > div > div {
-            max-width: 100% !important;
-            width: 100% !important;
+        /* ProseMirror Editor Core */
+        #tiptap-editor .ProseMirror {
+            outline: none;
+            max-width: 100%;
+            width: 100%;
         }
         
-        /* Content container - centered with max-width for readability */
-        #tiptap-editor .bn-block-group,
-        #tiptap-editor .bn-block-outer {
-            max-width: 100% !important;
-            width: 100% !important;
+        #tiptap-editor .ProseMirror > * {
+            max-width: 720px;
+            margin-left: auto;
+            margin-right: auto;
         }
         
-        /* Actual block content - limit width for readability */
-        #tiptap-editor .bn-block-content {
-            max-width: min(720px, calc(100vw - 340px - 48px)) !important;
-            margin: 0 auto;
+        /* Floating Menu / Tippy.js - constrain width */
+        [data-tippy-root] {
+            width: auto !important;
+            max-width: 260px !important;
         }
         
-        .editor-layout.panel-hidden #tiptap-editor .bn-block-content {
-            max-width: min(800px, calc(100vw - 100px)) !important;
+        .floating-menu,
+        .slash-menu {
+            width: 240px !important;
+            max-width: 240px !important;
+        }
+        
+        .bubble-menu {
+            z-index: 10000;
         }
         
         /* Sidebar */

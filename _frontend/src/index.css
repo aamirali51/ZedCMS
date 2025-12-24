@@ -147,6 +147,23 @@
    BlockNote Suggestion Menu (Slash Menu)
    ================================================ */
 
+/* Mantine Stack layout - vertical flex */
+.mantine-Stack-root,
+[class*="mantine-Stack"] {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: var(--stack-gap, 8px) !important;
+}
+
+/* Mantine Group layout - horizontal flex */
+.mantine-Group-root,
+[class*="mantine-Group"] {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: var(--group-gap, 8px) !important;
+}
+
 /* Main dropdown container */
 .bn-suggestion-menu,
 [data-bn-suggestion-menu],
@@ -154,33 +171,64 @@
 .mantine-Popover-dropdown {
   background-color: white !important;
   border: 1px solid #e2e8f0 !important;
-  border-radius: 8px !important;
+  border-radius: 12px !important;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.08) !important;
-  padding: 6px !important;
+  padding: 8px !important;
   z-index: 9999 !important;
   max-height: 400px !important;
   overflow-y: auto !important;
+  min-width: 280px !important;
 }
 
 /* Dark mode menu */
 [data-mantine-color-scheme="dark"] .mantine-Menu-dropdown,
-[data-mantine-color-scheme="dark"] .mantine-Popover-dropdown {
+[data-mantine-color-scheme="dark"] .mantine-Popover-dropdown,
+.dark .bn-suggestion-menu {
   background-color: #1e293b !important;
   border-color: #334155 !important;
 }
 
-/* Menu items */
+/* Menu items - fix layout */
 .bn-suggestion-menu-item,
 [data-bn-suggestion-menu-item],
 .mantine-Menu-item {
   display: flex !important;
+  flex-direction: row !important;
   align-items: center !important;
-  padding: 8px 12px !important;
-  border-radius: 6px !important;
+  padding: 10px 12px !important;
+  border-radius: 8px !important;
   cursor: pointer !important;
   transition: background-color 0.15s ease !important;
   background-color: transparent !important;
-  gap: 10px !important;
+  gap: 12px !important;
+  width: 100% !important;
+}
+
+/* Item body - vertical stack for title/subtitle */
+.bn-mt-suggestion-menu-item-body {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 2px !important;
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+/* Item sections - icon and shortcut areas */
+.bn-mt-suggestion-menu-item-section {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+.bn-mt-suggestion-menu-item-section[data-position="left"] {
+  width: 24px !important;
+  height: 24px !important;
+  color: #64748b !important;
+}
+
+.bn-mt-suggestion-menu-item-section[data-position="right"] {
+  color: #94a3b8 !important;
 }
 
 .bn-suggestion-menu-item:hover,
@@ -189,6 +237,11 @@
 .bn-suggestion-menu-item[data-selected="true"],
 [data-bn-suggestion-menu-item][data-selected="true"] {
   background-color: #f1f5f9 !important;
+}
+
+.dark .bn-suggestion-menu-item:hover,
+.dark .bn-suggestion-menu-item[data-selected="true"] {
+  background-color: #334155 !important;
 }
 
 [data-mantine-color-scheme="dark"] .mantine-Menu-item:hover {

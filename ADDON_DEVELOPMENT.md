@@ -18,6 +18,8 @@ content/addons/
 └── my_addon/
     ├── addon.php       ← Entry point (required)
     ├── README.md       ← Documentation
+    ├── src/            ← PHP classes (auto-loaded via Addons\ namespace)
+    │   └── MyClass.php
     ├── assets/
     │   ├── script.js
     │   ├── style.css
@@ -25,6 +27,52 @@ content/addons/
     └── templates/      ← Optional
         └── custom.php
 ```
+
+## System Modules vs Addons
+
+Zed CMS separates **system modules** from user addons:
+
+```
+content/addons/
+├── _system/              ← SYSTEM MODULES (protected, always loaded)
+│   ├── admin.php         ← Entry point for admin system
+│   │   └── admin/        ← Admin sub-modules
+│   └── frontend.php      ← Entry point for frontend system
+│       └── frontend/     ← Frontend sub-modules
+│
+├── zed_seo/              ← User addon (folder-based)
+├── zed_contact/          ← User addon (folder-based)
+└── custom_addon.php      ← User addon (single-file)
+```
+
+**Key Difference:**
+- System modules (`_system/*`) cannot be disabled and are always loaded first
+- User addons can be enabled/disabled via Admin → Addons
+
+## Class Autoloading for Addons
+
+Addons can define classes in the `Addons\` namespace. They are auto-loaded:
+
+```php
+// In: content/addons/zed_seo/src/SitemapGenerator.php
+<?php
+namespace Addons\ZedSEO;
+
+class SitemapGenerator {
+    public function generate(): string { ... }
+}
+```
+
+Usage anywhere:
+```php
+$generator = new \Addons\ZedSEO\SitemapGenerator();
+```
+
+**Naming Convention:**
+- Folder: `zed_seo` (snake_case)
+- Namespace: `Addons\ZedSEO` (PascalCase)
+- Class: `SitemapGenerator`
+- File: `src/SitemapGenerator.php`
 
 ## Folder-Based Addon Template
 
@@ -98,11 +146,12 @@ assets/
 
 ## Best Practices
 
-1. **Always use folder structure** for addons with assets
+1. **Always use folder structure** for addons with assets or classes
 2. **Use `__DIR__`** to reference addon files
 3. **Prefix CSS/JS** to avoid conflicts
 4. **Document settings** in README.md
 5. **Version your addon** in the header comment
+6. **Use the `Addons\` namespace** for classes to get auto-loading
 
 ## Loading Assets
 

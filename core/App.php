@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Core;
 
 /**
- * Zero CMS Micro-Kernel Application
+ * Zed CMS Micro-Kernel Application
  * 
  * The core application class. In a micro-kernel architecture,
  * this class does minimal work—dispatching events to addons/plugins.
@@ -78,10 +78,12 @@ final class App
             Database::setConfig($dbConfig);
         }
 
-        // 3. Run pending migrations (safe upgrade system)
-        // Only executes migrations that haven't run yet, tracked in zed_options
+        // 3. Run pending migrations ONLY if version has changed (performance optimization)
+        // This check is fast (single DB query) and prevents migration overhead on every request
         try {
-            Migrations::run();
+            if (Migrations::needsMigration()) {
+                Migrations::run();
+            }
         } catch (\Exception $e) {
             // Silently fail - don't break the app if migrations fail
             // Errors are logged in the migration system

@@ -137,7 +137,7 @@ $GLOBALS['post'] = $post;
             <?= $beforeContent ?? '' ?>
             
             <!-- Content -->
-            <div class="prose prose-lg max-w-none text-slate-700">
+            <div class="zed-content max-w-none">
                 <?= $htmlContent ?>
             </div>
             

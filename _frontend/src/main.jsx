@@ -1,8 +1,10 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import './index.css'
-import '@mantine/core/styles.css';
-import { BlockNoteEditor } from './components/blocknote-editor'
+
+// Simple CSS imports - no Mantine!
+import './editor.css'
+
+import { ZedEditor } from './components/zed-editor'
 
 const rootElement = document.getElementById('tiptap-editor')
 
@@ -10,41 +12,61 @@ if (rootElement) {
     // Get initial data from PHP
     let content = window.ZERO_INITIAL_CONTENT || null
 
-    // Validate content is valid BlockNote JSON format
-    // BlockNote expects an array of block objects
-    if (content && typeof content === 'object') {
-        // Check if it's BlockNote format (array of blocks)
-        if (!Array.isArray(content)) {
-            // It's probably old Tiptap format - start fresh
-            console.warn('Content is not in BlockNote format, starting with empty document')
-            content = null
-        }
-    } else if (typeof content === 'string') {
-        // If it's a string, try to parse it
-        try {
-            const parsed = JSON.parse(content)
-            if (Array.isArray(parsed)) {
-                content = JSON.stringify(parsed)
-            } else {
-                content = null
-            }
-        } catch {
-            content = null
-        }
-    } else {
-        content = null
-    }
+    // Convert BlockNote format to TipTap format if needed
+    // TipTap uses ProseMirror JSON which is similar but not identical
+    let initialContent = null
 
-    // Convert content to string for BlockNoteEditor if valid
-    const contentString = content ? JSON.stringify(content) : null
+    if (content && Array.isArray(content)) {
+        // Convert BlockNote blocks to HTML for TipTap
+        initialContent = convertBlocksToHTML(content)
+    }
 
     ReactDOM.createRoot(rootElement).render(
         <React.StrictMode>
-            <BlockNoteEditor initialContent={contentString} />
+            <ZedEditor initialContent={initialContent} />
         </React.StrictMode>
     )
 
-    console.log('BlockNote Editor Mounted')
+    console.log('Zed TipTap Editor Mounted')
 } else {
     console.error('Target container #tiptap-editor not found')
+}
+
+/**
+ * Convert BlockNote blocks to HTML for TipTap
+ * This allows existing content to work with the new editor
+ */
+function convertBlocksToHTML(blocks) {
+    if (!blocks || !Array.isArray(blocks)) return ''
+
+    return blocks.map(block => {
+        const content = block.content || []
+        const text = content.map(c => c.text || '').join('')
+        const props = block.props || {}
+
+        switch (block.type) {
+            case 'heading':
+                const level = props.level || 2
+                return `<h${level}>${text}</h${level}>`
+
+            case 'paragraph':
+                return text ? `<p>${text}</p>` : '<p></p>'
+
+            case 'bulletListItem':
+                return `<ul><li>${text}</li></ul>`
+
+            case 'numberedListItem':
+                return `<ol><li>${text}</li></ol>`
+
+            case 'codeBlock':
+                return `<pre><code>${text}</code></pre>`
+
+            case 'image':
+                const url = props.url || props.src || ''
+                return url ? `<img src="${url}" />` : ''
+
+            default:
+                return text ? `<p>${text}</p>` : ''
+        }
+    }).join('\n')
 }

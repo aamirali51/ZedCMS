@@ -56,13 +56,49 @@ $page_title = $page_title ?? $post['title'] ?? $site_name;
 
     <?= aurora_css_variables() ?>
     <?= zed_render_theme_styles() ?>
+    <?= zed_content_styles() ?>
     
     <style>
         body { font-family: 'Inter', sans-serif; }
-        .prose { font-family: Georgia, serif; line-height: 1.8; }
-        .prose h1, .prose h2, .prose h3 { font-family: 'Inter', sans-serif; font-weight: 700; }
+        
+        /* Prose typography for content */
+        .prose { 
+            font-family: Georgia, serif; 
+            line-height: 1.8; 
+            font-size: 1.125rem;
+        }
+        .prose h1, .prose h2, .prose h3, .prose h4, .prose h5, .prose h6 { 
+            font-family: 'Inter', sans-serif; 
+            font-weight: 700;
+            line-height: 1.2;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            color: #1e293b;
+        }
+        .prose h1 { font-size: 2.25rem; }
+        .prose h2 { font-size: 1.875rem; }
+        .prose h3 { font-size: 1.5rem; }
+        .prose h4 { font-size: 1.25rem; }
+        .prose h5 { font-size: 1.125rem; }
+        .prose h6 { font-size: 1rem; }
         .prose p { margin-bottom: 1.5rem; }
         .prose a { color: var(--aurora-brand); }
+        .prose ul, .prose ol { margin-bottom: 1.5rem; padding-left: 1.5rem; }
+        .prose li { margin-bottom: 0.5rem; }
+        .prose blockquote { 
+            border-left: 4px solid var(--aurora-brand); 
+            padding-left: 1rem; 
+            margin: 1.5rem 0;
+            font-style: italic;
+            color: #64748b;
+        }
+        .prose pre, .prose code { 
+            background: #f1f5f9; 
+            border-radius: 0.375rem;
+        }
+        .prose code { padding: 0.125rem 0.375rem; font-size: 0.875rem; }
+        .prose pre { padding: 1rem; overflow-x: auto; margin: 1.5rem 0; }
+        .prose img { max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1.5rem 0; }
     </style>
     
     <?php 

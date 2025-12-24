@@ -18,18 +18,27 @@ $addons_dir = realpath(__DIR__ . '/../../../addons');
 // Discover all addons (single files + folders with addon.php)
 $addon_files = [];
 
-// 1. Single-file addons: addons/*.php
+// 1. Single-file addons: addons/*.php (skip legacy system addons)
 foreach (glob($addons_dir . '/*.php') ?: [] as $file) {
+    $basename = basename($file);
+    // Skip legacy system addons (if they still exist)
+    if (in_array($basename, ['admin_addon.php', 'frontend_addon.php'], true)) {
+        continue;
+    }
     $addon_files[] = [
         'path' => $file,
-        'identifier' => basename($file),
+        'identifier' => $basename,
         'type' => 'file',
     ];
 }
 
-// 2. Folder-based addons: addons/*/addon.php
+// 2. Folder-based addons: addons/*/addon.php (skip _system, admin, frontend folders)
 foreach (glob($addons_dir . '/*/addon.php') ?: [] as $file) {
     $folderName = basename(dirname($file));
+    // Skip system folders
+    if (in_array($folderName, ['_system', 'admin', 'frontend'], true)) {
+        continue;
+    }
     $addon_files[] = [
         'path' => $file,
         'identifier' => $folderName, // Use folder name as identifier
@@ -37,8 +46,9 @@ foreach (glob($addons_dir . '/*/addon.php') ?: [] as $file) {
     ];
 }
 
-// Get system addons list (defined in index.php)
-$system_addons = defined('ZERO_SYSTEM_ADDONS') ? ZERO_SYSTEM_ADDONS : ['admin_addon.php', 'frontend_addon.php'];
+// Note: System modules are now in _system/ folder and are not shown here
+// They are always loaded and cannot be disabled
+$system_addons = []; // No system addons in regular listing anymore
 
 // Get active addons from database
 $active_addons = null;
@@ -275,10 +285,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 const response = await fetch(`${baseUrl}/admin/api/toggle-addon`, {
                     method: 'POST',
                     headers: { 
-                        'Content-Type': 'application/json',
-                        'X-ZED-NONCE': window.ZED_NONCE || ''
+                        'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ filename })
+                    body: JSON.stringify({ 
+                        filename,
+                        _zed_nonce: window.ZED_NONCE || ''
+                    })
                 });
                 
                 const data = await response.json();

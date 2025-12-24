@@ -1,0 +1,939 @@
+.soledad-setup-wizard-page {
+	overflow: hidden;
+}
+.page-title-wz {
+	font-size: 18px;
+	text-align: center;
+	margin: 0 0 30px;
+}
+.soledad-setup-wizard-page #adminmenumain,
+.soledad-setup-wizard-page #wpfooter,
+.soledad-setup-wizard-page #wpadminbar {
+	display: none;
+}
+.soledad-setup-wizard-page #wpadminbar,
+.soledad-setup-wizard-page #wpcontent,
+.soledad-setup-wizard-page #wpfooter {
+	margin: 0;
+}
+.soledad-setup-wizard-page #wpbody-content {
+	display: flex;
+	align-items: center;
+	flex-direction: column;
+	justify-content: center;
+	padding: 0;
+	min-height: 100vh;
+	max-width: 100%;
+}
+.soledad-setup-wizard-page
+	#wpbody-content
+	:is(.soledad-setup-wizard-wrap, .soledad-footer) {
+	margin-inline: auto;
+	max-width: 1000px;
+	width: 100%;
+	box-shadow: 1px 0px 10px rgba(51, 44, 44, 0.26);
+}
+.soledad-setup-wizard-page #wpbody-content .soledad-footer {
+	margin-top: 20px;
+}
+.soledad-setup-wizard-page .notice {
+	display: none !important;
+}
+.soledad-setup-wizard-page:has(.soledad-plugin-wrapper.soledad-loading)
+	.soledad-wizard-nav,
+.soledad-setup-wizard-page:has(.soledad-plugin-wrapper.soledad-loading)
+	#wpadminbar,
+.soledad-setup-wizard-page:has(.soledad-plugin-wrapper.soledad-loading)
+	#adminmenu,
+.soledad-setup-wizard-page:has(.soledad-plugin-wrapper.soledad-loading)
+	.soledad-footer.soledad-theme-style,
+.soledad-setup-wizard-page:has(.soledad-import-items.soledad-loading)
+	.soledad-wizard-nav,
+.soledad-setup-wizard-page:has(.soledad-import-items.soledad-loading)
+	#wpadminbar,
+.soledad-setup-wizard-page:has(.soledad-import-items.soledad-loading)
+	#adminmenu,
+.soledad-setup-wizard-page:has(.soledad-import-items.soledad-loading)
+	.soledad-footer.soledad-theme-style {
+	pointer-events: none;
+}
+.soledad-setup-wizard {
+	--penci-brd-radius: 0;
+	--penci-btn-primay-color: #0785d3;
+	--penci-btn-primary-color-hover: #0064a1;
+	--wp-admin-theme-color-darker-10: #00578d;
+	--wp-admin-theme-color-darker-20: #003353;
+	--wp-admin-theme-color--rgb: 124, 179, 43;
+	--penci-grey-color: #f1f1f1;
+	display: flex;
+	min-height: 580px;
+	border-radius: var(--penci-brd-radius);
+	background-color: #fbfbfb;
+}
+.soledad-setup-wizard img {
+	max-width: 180px;
+	height: auto;
+	vertical-align: middle;
+}
+.soledad-setup-wizard a {
+	outline: none;
+	box-shadow: none;
+	text-decoration: none;
+	transition: all 0.25s ease;
+}
+.soledad-setup-wizard input[type="text"]:disabled {
+	pointer-events: none;
+}
+.soledad-setup-wizard .soledad-box {
+	background-color: transparent;
+	box-shadow: none;
+}
+.soledad-setup-wizard .soledad-box-header {
+	margin-bottom: 25px;
+	min-height: auto;
+	border: none;
+}
+.soledad-setup-wizard .soledad-box-header h3 {
+	margin: 0;
+}
+.soledad-setup-wizard :is(.soledad-box-header, .soledad-box-content) {
+	padding: 0;
+}
+.soledad-setup-wizard .soledad-msg > p {
+	margin-block: 0 30px;
+}
+.soledad-setup-wizard .soledad-notice {
+	font-size: 12px;
+}
+.soledad-setup-wizard .soledad-note {
+	background-color: #f1f1f1;
+	font-size: 12px;
+}
+.soledad-setup-wizard ::-webkit-scrollbar,
+.soledad-setup-wizard ::-webkit-scrollbar-track,
+.soledad-setup-wizard ::-webkit-scrollbar-thumb {
+	border-radius: 3px;
+}
+.soledad-setup-wizard ::-webkit-scrollbar {
+	width: 5px;
+}
+.soledad-setup-wizard ::-webkit-scrollbar-track {
+	background-color: rgba(0, 0, 0, 0.05);
+}
+.soledad-setup-wizard ::-webkit-scrollbar-thumb {
+	background-color: rgba(0, 0, 0, 0.12);
+}
+.soledad-wizard-nav {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+	max-width: 280px;
+	width: 100%;
+	background: var(--wp-admin-theme-color);
+	border-start-start-radius: var(--penci-brd-radius);
+	border-end-start-radius: var(--penci-brd-radius);
+	flex-shrink: 0;
+}
+.soledad-wizard-nav ul {
+	margin: 0;
+	padding: 60px 45px;
+}
+.soledad-wizard-nav ul li {
+	margin-bottom: 20px;
+	transition: all 0.25s ease;
+	user-select: none;
+}
+.soledad-wizard-nav ul li a {
+	position: relative;
+	display: flex;
+	align-items: center;
+	color: rgba(255, 255, 255, 0.8);
+}
+.soledad-wizard-nav ul li a:before {
+	content: "";
+	display: block;
+	margin-inline: 1px 13px;
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	background-color: #fff;
+}
+.soledad-wizard-nav ul li a:after {
+	content: "\f15e";
+	position: absolute;
+	top: 0;
+	inset-inline-start: 1px;
+	width: 20px;
+	color: var(--wp-admin-theme-color);
+	text-align: center;
+	font-size: 16px;
+	font-family: "dashicons";
+	line-height: 20px;
+}
+.soledad-wizard-nav ul li.penci-install-active {
+	opacity: 1;
+}
+.soledad-wizard-nav ul li.penci-install-active a {
+	color: #fff;
+}
+.soledad-wizard-nav ul li.penci-install-active a:after {
+	top: 6px;
+	inset-inline-start: 7px;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background-color: var(--wp-admin-theme-color);
+	font-size: 0;
+}
+.soledad-wizard-nav ul li:is(.penci-install-active, .penci-install-disabled) {
+	pointer-events: none;
+}
+.soledad-wizard-nav ul li.penci-install-disabled {
+	opacity: 0.5;
+}
+.soledad-wizard-nav ul li.penci-install-disabled a:before {
+	margin-top: 1px;
+	margin-inline: 2px 14px;
+	margin-bottom: 2px;
+	width: 17px;
+	height: 17px;
+}
+.soledad-wizard-nav ul li.penci-install-disabled a:after {
+	display: none;
+}
+.soledad-wizard-nav ul li:hover:not(.penci-install-disabled) a {
+	color: #fff;
+}
+.soledad-wizard-help {
+	display: flex;
+	align-items: center;
+	padding: 0 40px 40px 40px;
+	color: #fff;
+	font-size: 14px;
+}
+.soledad-wizard-help:before {
+	margin-inline-end: 10px;
+}
+.soledad-wizard-help:hover,
+.soledad-wizard-help:focus {
+	color: rgba(255, 255, 255, 0.8);
+}
+.soledad-wizard-content {
+	display: flex;
+	flex-grow: 1;
+	flex-direction: column;
+	justify-content: space-between;
+	padding: 60px 60px 40px 60px;
+}
+.soledad-wizard-content h3 {
+	font-size: 26px;
+	line-height: 1;
+}
+.soledad-wizard-content p {
+	color: #5b5b5b;
+	font-size: 14px;
+}
+.soledad-wizard-content .soledad-btn {
+	align-items: center;
+	padding: 0 20px;
+	height: 40px;
+	line-height: 40px;
+}
+.soledad-wizard-content .soledad-btn.soledad-shown {
+	display: inline-flex;
+}
+.soledad-wizard-content .penci-install-disabled .soledad-color-primary,
+.soledad-wizard-content .soledad-color-primary.penci-install-disabled {
+	color: #b9b9b9 !important;
+	pointer-events: none;
+	user-select: none;
+}
+.soledad-wizard-content
+	.penci-install-disabled
+	.soledad-btn.soledad-color-primary,
+.soledad-wizard-content .soledad-color-primary.penci-install-disabled {
+	background-color: var(--penci-grey-color) !important;
+}
+.soledad-wizard-content .penci-install-disabled .soledad-inline-btn {
+	opacity: 0.5;
+}
+.soledad-wizard-content .soledad-next:after {
+	margin-inline: 5px -5px;
+	font-weight: 400;
+	content: "\f345";
+	font-weight: 400;
+	font-family: "dashicons";
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+.rtl .soledad-wizard-content .soledad-next:after {
+	content: "\e908";
+	font-weight: 400;
+	font-family: "dashicons";
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+.soledad-wizard-content .soledad-prev:before {
+	margin-inline: -5px 5px;
+	font-weight: 400;
+	content: "\f341";
+	font-weight: 400;
+	font-family: "dashicons";
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+.rtl .soledad-wizard-content .soledad-prev:before {
+	content: "\e909";
+	font-weight: 400;
+	font-family: "dashicons";
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+.soledad-wizard-logo {
+	margin-bottom: 25px;
+	min-height: 36px;
+	max-width: 245px;
+	width: 245px;
+}
+.soledad-wizard-footer {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-top: 30px;
+}
+.soledad-wizard-footer div {
+	min-width: 330px;
+	text-align: right;
+}
+.soledad-wizard-footer.penci-install-disabled {
+	pointer-events: none;
+}
+:is(.soledad-wizard-footer, .soledad-wizard-buttons)
+	:is(.soledad-btn, .soledad-inline-btn):not(:first-child) {
+	margin-inline-start: 20px;
+}
+:is(.soledad-wizard-footer, .soledad-wizard-buttons) .soledad-inline-btn {
+	margin-block: 10px;
+}
+.soledad-wizard-welcome p {
+	max-width: 550px;
+}
+.soledad-wizard-content .soledad-wizard-signature {
+	margin-top: 30px;
+	line-height: 60px;
+}
+.soledad-wizard-content .soledad-wizard-signature img {
+	margin-inline-start: 10px;
+	max-width: 95px;
+}
+.soledad-wizard-buttons {
+	margin-top: 40px;
+}
+.soledad-wizard-content .soledad-license .soledad-box-header {
+	flex-wrap: wrap;
+}
+.soledad-wizard-content .soledad-license .soledad-box-header h3 {
+	margin-bottom: 20px;
+}
+.soledad-wizard-content .soledad-license .soledad-box-header p {
+	display: block;
+	width: 100%;
+}
+.soledad-wizard-content .soledad-license-img {
+	display: none;
+}
+.soledad-wizard-content .soledad-license-content {
+	flex-basis: 100%;
+	max-width: 100%;
+}
+.soledad-wizard-content .soledad-license-btn:before {
+	inset-inline-start: 14px;
+}
+.soledad-wizard-content .soledad-license-btn input {
+	padding-inline-start: 35px;
+}
+.soledad-wizard-child-theme.soledad-installed .soledad-child-image {
+	opacity: 1;
+	transform: none;
+}
+.soledad-wizard-child-theme.soledad-installed .soledad-child-image:before {
+	opacity: 1;
+}
+.soledad-wizard-child-theme.soledad-installed
+	+ .soledad-wizard-footer
+	.soledad-skip {
+	display: none;
+}
+.soledad-wizard-child-theme:not(.soledad-installed)
+	+ .soledad-wizard-footer
+	.soledad-next {
+	display: none;
+}
+.soledad-theme-images {
+	display: flex;
+	align-items: center;
+	margin-bottom: 20px;
+	min-height: 115px;
+}
+.soledad-theme-images > div {
+	padding: 3px;
+	border: 1px solid rgba(0, 0, 0, 0.05);
+	border-radius: var(--penci-brd-radius);
+	background-color: #fff;
+}
+.soledad-theme-images > div img {
+	border-radius: inherit;
+}
+.soledad-main-image {
+	position: relative;
+	z-index: 5;
+}
+.soledad-child-image {
+	position: relative;
+	margin-inline-start: 10px;
+	opacity: 0;
+	transition: all 0.4s ease;
+	transform: translateX(-100%);
+}
+.soledad-child-image:before {
+	position: absolute;
+	top: -7px;
+	inset-inline-end: -7px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	background-color: var(--wp-admin-theme-color);
+	color: #fff;
+	font-size: 17px;
+	opacity: 0;
+	transition: all 0.4s ease 0.4s;
+	content: "\f147";
+	font-weight: 400;
+	font-family: "dashicons";
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+.soledad-install-child-theme:after {
+	display: none !important;
+	margin-inline-end: -5px;
+	margin-inline-start: 12px;
+	content: "";
+	display: inline-block;
+	width: 14px;
+	height: 14px;
+	border: 1px solid rgba(255, 255, 255, 0.15);
+	border-left-color: #fff;
+	border-radius: 50%;
+	vertical-align: middle;
+}
+.soledad-install-child-theme.soledad-loading {
+	color: #fff;
+	opacity: 0.8;
+	pointer-events: none;
+}
+.soledad-install-child-theme.soledad-loading:after {
+	display: inline-block !important;
+	animation: penci-menu-rotate 450ms infinite linear;
+}
+.soledad-wizard-child-theme.soledad-installed .soledad-color-primary {
+	background-color: var(--penci-grey-color);
+	color: #b9b9b9 !important;
+	pointer-events: none;
+	user-select: none;
+	padding: 10px 20px;
+}
+.soledad-wizard-builder-select {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+.soledad-wizard-builder-select > :is(div, span) {
+	display: flex;
+	align-items: center;
+	flex-direction: column;
+	justify-content: center;
+	width: 100%;
+}
+.soledad-wizard-builder-select > div {
+	flex: 1 1 0%;
+	align-items: center;
+	flex-direction: row;
+	justify-content: flex-start;
+	gap: 15px;
+	padding: 20px;
+	border-radius: var(--penci-brd-radius);
+	background-color: #fff;
+	cursor: pointer;
+	transition: all 0.25s ease;
+	border: 2px solid transparent;
+}
+.soledad-wizard-builder-select > div > * {
+	transition: inherit;
+}
+.soledad-wizard-builder-select > div p {
+	margin-bottom: 0;
+}
+.soledad-wizard-builder-select > div:hover {
+	border-color: var(--penci-option-border-color);
+}
+.soledad-wizard-builder-select > div.penci-install-active {
+	border-color: var(--penci-btn-primay-color);
+}
+.soledad-wizard-builder-select > span {
+	display: none;
+	font-weight: 500;
+}
+.soledad-page-builder-img {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 40px;
+	height: 40px;
+}
+.soledad-page-builder-text {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+.soledad-page-builder-title {
+	color: #333;
+	font-weight: 700;
+	font-size: 16px;
+}
+.soledad-wizard-dummy .soledad-sp-20 {
+	--penci-sp: 10px;
+}
+.soledad-wizard-dummy :is(.soledad-btn, .soledad-bordered-btn) {
+	padding: 0 10px;
+	height: 30px;
+	font-size: 11px;
+	line-height: 30px;
+}
+.soledad-wizard-dummy .soledad-box-header {
+	margin-bottom: 20px;
+}
+.soledad-wizard-dummy .soledad-box-header .soledad-col {
+	justify-content: space-between;
+}
+.soledad-wizard-dummy .soledad-box-header .soledad-import-search {
+	margin-inline: 10px 0;
+}
+.soledad-wizard-dummy :is(.soledad-col-remove-content, .soledad-col-dummy-nav) {
+	display: none !important;
+}
+.soledad-wizard-dummy .soledad-notices-sticky {
+	top: 0;
+	margin-top: 0;
+	padding-top: 0;
+	background-color: #f7f7f7;
+}
+.soledad-wizard-dummy .soledad-box-content {
+	overflow-x: hidden;
+	overflow-y: scroll;
+	padding-inline-end: 10px;
+	padding-bottom: 5px !important;
+	min-height: 400px;
+	max-height: 400px;
+}
+.soledad-wizard-dummy .soledad-wizard-footer {
+	margin-top: 20px;
+}
+.soledad-wizard-dummy .soledad-box-footer {
+	display: none;
+}
+.soledad-wizard-dummy .soledad-import-item:hover {
+	box-shadow: none;
+}
+.soledad-wizard-dummy .soledad-import-item-title {
+	font-size: 13px;
+	line-height: 15px;
+}
+.soledad-wizard-dummy .soledad-import-item-btn:after {
+	inset-inline-start: 7px;
+}
+.soledad-wizard-dummy .soledad-import-item-footer {
+	padding: 10px;
+}
+.soledad-wizard-dummy.imported-base + .soledad-wizard-footer .soledad-skip {
+	display: none;
+}
+.soledad-wizard-dummy.imported-base + .soledad-wizard-footer .soledad-prev {
+	visibility: hidden;
+	opacity: 0;
+}
+.soledad-wizard-dummy:not(.imported-base)
+	+ .soledad-wizard-footer
+	.soledad-next {
+	display: none;
+}
+.soledad-wizard-content-inner.soledad-wizard-done {
+	flex-direction: column;
+	justify-content: center;
+	height: 100%;
+}
+.soledad-wizard-content-inner.soledad-wizard-done > p {
+	margin-top: 0;
+}
+.soledad-wizard-content-inner.soledad-wizard-done .soledad-wizard-buttons {
+	margin-top: 10px;
+}
+.soledad-setup-wizard.soledad-done
+	.soledad-wizard-content-inner.soledad-wizard-dummy,
+.soledad-setup-wizard.soledad-done
+	.soledad-wizard-content-inner.soledad-wizard-dummy
+	+ .soledad-wizard-footer {
+	display: none;
+}
+.soledad-setup-wizard.soledad-done
+	.soledad-wizard-content-inner.soledad-wizard-done {
+	display: flex;
+}
+.soledad-setup-wizard.soledad-done .soledad-wizard-done-nav {
+	display: block;
+}
+.soledad-setup-wizard.soledad-done .soledad-wizard-nav > ul,
+.soledad-setup-wizard.soledad-done .soledad-wizard-nav .soledad-wizard-help {
+	display: none;
+}
+.soledad-wizard-done-nav {
+	display: none;
+	margin-top: 50px;
+	margin-inline: 15px;
+	text-align: center;
+}
+.soledad-wizard-done-nav h3 {
+	color: #fff;
+	font-size: 22px;
+}
+.soledad-wizard-done-nav p {
+	margin: 0 auto;
+	max-width: 210px;
+	color: rgba(255, 255, 255, 0.8);
+	font-size: 16px;
+}
+.soledad-wizard-done-nav-img {
+	min-height: 140px;
+}
+@media (max-width: 1024px) {
+	.soledad-wizard-nav {
+		max-width: 200px;
+	}
+	.soledad-wizard-nav ul {
+		padding: 45px 25px;
+	}
+	.soledad-wizard-help {
+		padding-inline: 20px;
+	}
+}
+.soledad-wizard-buttons a {
+	display: inline-block;
+	padding: 10px 25px;
+	background: #000;
+	color: #fff;
+	font-weight: bold;
+	transition: 0.3s all ease-in-out;
+}
+.soledad-wizard-buttons a:hover {
+	opacity: 0.8;
+}
+.soledad-wizard-buttons a.penci-install-color-primary {
+	background: var(--wp-admin-theme-color);
+}
+.penci-install-plugins ul {
+	max-height: 300px;
+	overflow: auto;
+}
+.soledad-wizard-content-inner #penci-check-license .penci-activate-err span {
+	display: none;
+}
+.soledad-wizard-content-inner
+	#penci-check-license
+	.penci-activate-err
+	span.penci-err-show {
+	display: block;
+}
+.soledad-wizard-content-inner .penci-activate-err span {
+	padding: 10px 20px;
+	background: #fbdada;
+	color: #cc0909;
+	margin: 15px 0 0;
+	border-radius: 5px;
+}
+.soledad-wizard-content-inner #penci-check-license input {
+	width: 100%;
+	padding: 5px 10px;
+	outline: 0;
+	border-radius: 5px;
+}
+.soledad-wizard-content-inner #penci-check-license button {
+	margin: 15px 0;
+	padding: 10px 30px;
+	background: #000;
+	border: 0;
+	color: #fff;
+	border-radius: 5px;
+	cursor: pointer;
+}
+.soledad-wizard-content-inner .penci-activate-extra-notes {
+	border-top: 1px solid #ddd;
+	margin-top: 30px;
+}
+ul li.soledad-plugin-wrapper {
+	border-bottom: 1px solid #ddd;
+	padding-bottom: 10px;
+	margin-bottom: 10px;
+	display: flex;
+	flex-wrap: wrap;
+	flex-direction: row;
+}
+ul li.soledad-plugin-wrapper .penci-install-plugin-heading {
+	width: 250px;
+}
+ul li.soledad-plugin-wrapper .penci-install-plugin-version,
+ul li.soledad-plugin-wrapper .penci-install-plugin-required {
+	width: 70px;
+}
+.penci-install-plugin-required-text {
+	color: rgb(201, 1, 1);
+	font-weight: bold;
+	font-size: 12px;
+}
+.soledad-wizard-dummy .demos-container-wrap {
+	max-height: 500px;
+	overflow: auto;
+	margin: 0 -20px;
+	padding: 0 20px;
+}
+.penci-install-note-wrapper {
+	margin: 20px 0 0;
+}
+.soledad-wizard-dummy .demos-container {
+	display: flex;
+	flex-wrap: wrap;
+	flex-direction: row;
+	--gap: 15px;
+	--col: 3;
+	gap: var(--gap);
+}
+.soledad-wizard-dummy .demos-container .demo-selector {
+	-webkit-flex-basis: calc(
+		(100% - (var(--gap) * (var(--col) - 1))) / var(--col)
+	);
+	-ms-flex-preferred-size: calc(
+		(100% - (var(--gap) * (var(--col) - 1))) / var(--col)
+	);
+	flex-basis: calc((100% - (var(--gap) * (var(--col) - 1))) / var(--col));
+	position: relative;
+	background: #fff;
+	box-shadow: 0 1px 6px rgba(55, 55, 55, 0.2);
+}
+.soledad-wizard-dummy .demo-selector .demo-image {
+	position: relative;
+}
+.soledad-wizard-dummy .demo-selector .demo-image img {
+	width: 100%;
+	height: auto;
+	max-width: unset;
+}
+.soledad-wizard-dummy .demo-selector .penci-demo-hover {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	opacity: 0;
+	visibility: hidden;
+	background: rgba(255, 255, 255, 0.9);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: all 0.3s ease;
+}
+.soledad-wizard-dummy .demo-selector:hover .penci-demo-hover {
+	opacity: 1;
+	visibility: visible;
+}
+.soledad-wizard-dummy .demo-install-actions {
+	display: flex;
+	flex-wrap: wrap;
+	flex-direction: column-reverse;
+	justify-content: space-between;
+	align-items: center;
+	padding: 10px 0 0;
+}
+.soledad-wizard-dummy .demo-install-actions .demo-title {
+	font-size: 14px;
+	margin: 0 0 10px;
+}
+.soledad-wizard-dummy .demo-install-actions .button {
+	padding: 5px 10px;
+	min-height: unset;
+	line-height: unset;
+	font-size: 12px;
+	border-radius: 0;
+	width: 100%;
+}
+.demos-container .demo-selector {
+	order: 2;
+}
+.demos-container .demo-selector-installed {
+	order: 1;
+}
+.demos-container .demo-selector-installed:hover .penci-demo-hover {
+	display: none;
+}
+.demos-container .demo-selector-installed .demo-image:before {
+	content: "\f147";
+	font-family: "dashicons";
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	display: flex;
+	background: rgba(0, 0, 0, 0.7);
+	align-items: center;
+	justify-content: center;
+	font-size: 90px;
+	color: #fff;
+}
+.soledad-plugin-wrapper .penci-install-plugin-name {
+	font-weight: bold;
+}
+.soledad-wizard-content-inner {
+	position: relative;
+}
+@keyframes penci-menu-rotate {
+	100% {
+		transform: rotate(360deg);
+	}
+}
+.penci-notice {
+	position: fixed;
+	top: 30px;
+	right: 30px;
+	background: rgba(0, 0, 0, 0.9);
+	width: 100%;
+	max-width: 250px;
+	color: #fff;
+	padding: 10px 15px;
+	border-radius: 5px;
+	font-size: 13px;
+	box-shadow: 3px 3px 8px rgba(55, 55, 55, 0.2);
+	text-align: center;
+}
+.penci-soledad-demo-import-log {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	z-index: 99;
+	background: #fff;
+	opacity: 0;
+	visibility: hidden;
+}
+.soledad-wizard-content-inner.importing .demo-selector:not(.importing) {
+	opacity: 0.5;
+	pointer-events: none;
+}
+.soledad-wizard-content-inner.importing
+	.demo-selector.importing
+	.penci-div-inner {
+	display: none;
+}
+.demo-selector.loading .penci-demo-hover {
+	opacity: 1;
+	visibility: visible;
+}
+.demo-selector.loading .penci-demo-hover .penci-div-inner {
+	display: none;
+}
+.demo-selector.loading .penci-demo-hover:before {
+	transition: opacity 0.2s ease;
+	content: "";
+	display: inline-block;
+	border: 1px solid #000;
+	border-left-color: #fff;
+	border-top-color: #fff;
+	border-radius: 50%;
+	vertical-align: middle;
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	margin-top: -12px;
+	margin-left: -12px;
+	width: 24px;
+	height: 24px;
+	z-index: 9;
+	animation: penci-menu-rotate 0.35s infinite linear;
+}
+.soledad-plugin-wrapper.soledad-loading .soledad-ajax-plugin:before {
+	transition: opacity 0.2s ease;
+	content: "";
+	display: inline-block;
+	border: 2px solid #000;
+	border-left-color: #fff;
+	border-top-color: #fff;
+	border-radius: 50%;
+	vertical-align: middle;
+	margin-top: -4px;
+	width: 12px;
+	height: 12px;
+	z-index: 9;
+	animation: penci-menu-rotate 0.35s infinite linear;
+}
+.soledad-setup-wizard-wrap .soledad-activation .success-icon {
+	text-align: center;
+	margin: 0 0 30px;
+}
+.soledad-setup-wizard-wrap .soledad-activation .success-icon i {
+	font-size: 79px;
+	line-height: 79px;
+	display: inline-block;
+	width: 79px;
+	height: 79px;
+	color: #029902;
+}
+.soledad-setup-wizard-wrap .soledad-activation .penci-license-detail-desc {
+	padding: 30px;
+	background: #f1f1f1;
+	border-radius: 5px;
+}
+.soledad-child-image:after {
+	content: "Child theme";
+	position: absolute;
+	bottom: 0;
+	right: 0;
+	left: 0;
+	right: 0;
+	text-align: center;
+	padding: 5px;
+	font-size: 10px;
+	background: #777;
+	color: #fff;
+	text-transform: uppercase;
+	font-weight: bold;
+}
+.soledad-install-child-theme {
+	display: inline-block;
+	background: #000;
+	color: #fff;
+}
+.soledad-install-child-theme:hover {
+	color: #fff;
+	opacity: 0.8;
+}
+.penci-demo-search-form  {
+	margin: 0 0 30px;
+}
+.penci-demo-search-form input {
+	width: 100%;
+	padding: 5px 15px;
+	font-size: 14px;
+	text-align: center;
+}

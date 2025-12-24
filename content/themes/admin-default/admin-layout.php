@@ -198,7 +198,10 @@ $nav_items = zed_get_admin_menu_items();
         }
         
         // Include the appropriate content partial
-        if (isset($content_partial) && file_exists($content_partial)) {
+        if (!empty($addon_page_content)) {
+            // Addon-registered page content (from zed_register_admin_menu callback)
+            echo $addon_page_content;
+        } elseif (isset($content_partial) && file_exists($content_partial)) {
             include $content_partial;
         } else {
             echo '<div class="text-center py-20 text-gray-500">Content not found</div>';
