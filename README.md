@@ -21,7 +21,7 @@ Stop fighting with legacy codebases.
 | **Routing** | **Decentralized (Event Listeners)** | Static Tables / Regex Hell |
 | **Database** | **Direct PDO (JSON-Optimized)** | heavy ORM / EAV Nightmares |
 | **Media** | **Native WebP Pipeline + Batch Ops** | Requires 3rd Party Plugins |
-| **Editor** | **React Block Editor (JSON)** | HTML WYSIWYG (Tag Soup) |
+| **Editor** | **TipTap Block Editor (HTML)** | HTML WYSIWYG (Tag Soup) |
 | **Dark Mode** | **Built-in (localStorage)** | Requires Plugin |
 | **Load Time** | **< 20ms Core Boot** | 200ms+ Core Boot |
 
@@ -53,10 +53,11 @@ This means you can replace the **entire Admin Panel** just by disabling one addo
 
 ## 🛠 Features for Developers
 
-### 🧱 BlockNote Block Editor
-No more `strip_tags()`. Content is saved as structured **JSON blocks** using BlockNote (React-based, Notion-style).
-*   **Clean Data:** `{ type: "paragraph", content: [{ type: "text", text: "Hello" }] }`
-*   **Portability:** Render natively in React, Vue, or iOS apps.
+### ✍️ TipTap Rich Text Editor
+No more `strip_tags()`. Content is saved as clean **HTML** using TipTap (ProseMirror-based).
+*   **Clean Data:** Direct HTML output, no JSON conversion needed for frontend.
+*   **Slash Commands:** Type `/` to insert headings, lists, images, callouts.
+*   **Bubble Toolbar:** Select text for formatting (bold, italic, colors, links).
 *   **Theming:** Dynamic light/dark mode, CSS variable support.
 
 

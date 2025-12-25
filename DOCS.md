@@ -1,7 +1,7 @@
 # Zed CMS — Feature Guide
 
 > **A Simple Guide to Every Feature in Zed CMS**  
-> Last Updated: 2025-12-25 | Version 3.0.1
+> Last Updated: 2025-12-25 | Version 3.1.0
 
 ---
 
@@ -51,14 +51,15 @@ Your command center showing:
 | Search | Type in search box |
 | Pagination | 10 items per page |
 
-### 3. BlockNote Editor (`/admin/editor`)
-A modern block-based editor powered by **BlockNote** (Notion-style):
+### 3. TipTap Editor (`/admin/editor`)
+A modern rich text editor powered by **TipTap** (ProseMirror-based):
 - **Paragraph, Heading, List** — Basic text blocks
-- **Image** — Upload or pick from media library
+- **Image** — Upload or pick from media library with resize/align controls
 - **Quote, Code** — Styled content blocks
-- **Drag & Drop** — Reorder blocks easily
+- **Slash Commands** — Type `/` to insert blocks
+- **Bubble Toolbar** — Select text for formatting options
 - **🌙 Theme Sync** — Editor matches admin dark/light mode
-- **JSON Storage** — Content saved as structured JSON blocks
+- **HTML Storage** — Content saved as clean HTML
 
 
 ### 4. Media Library (`/admin/media`)
@@ -418,7 +419,7 @@ zed_schedule_event('cleanup', 'daily', function() {
 ## 🚀 Need Help?
 
 1. Check the [Knowledge Base](/admin/wiki) in admin
-2. Review `ZERO_BLUEPRINT.md` for technical details
+2. Review `ARCHITECTURE.md` for technical details
 3. Look at existing addons for examples
 
 ---

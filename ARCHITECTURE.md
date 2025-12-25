@@ -226,7 +226,7 @@ ZedCMS/
 │   │   │       ├── theme_api.php     # Theme settings & assets
 │   │   │       ├── template_data.php # Template data injection
 │   │   │       ├── context.php       # Context registry (replaces globals)
-│   │   │       ├── renderer.php      # BlockNote JSON → HTML
+│   │   │       ├── renderer.php      # TipTap HTML + legacy block renderer
 │   │   │       ├── menus.php         # Navigation menus
 │   │   │       ├── queries.php       # Content queries
 │   │   │       ├── theme_parts.php   # Template partials
@@ -595,39 +595,36 @@ These are set by the frontend controller and available in all templates:
 | `$page_num` | `int` | Current page number |
 | `$total_pages` | `int` | Total pagination pages |
 
-### 7.3 BlockNote Renderer
+### 7.3 Content Renderer
 
-Content is stored as BlockNote JSON. The renderer converts it to HTML.
+**New in v3.1.0:** Content is stored as HTML directly from the TipTap editor. The renderer handles both new HTML content and legacy block-based JSON for backwards compatibility.
 
 **File:** `_system/frontend/renderer.php`
 
 ```php
-function render_blocks(array|string $blocks): string {
-    // Parse JSON if string
-    if (is_string($blocks)) {
-        $blocks = json_decode($blocks, true);
+function zed_render_content(array $post): string {
+    $data = $post['data'] ?? [];
+    if (is_string($data)) {
+        $data = json_decode($data, true) ?: [];
     }
     
-    $html = '';
-    foreach ($blocks as $block) {
-        switch ($block['type']) {
-            case 'paragraph':
-                $html .= "<p>{$innerHtml}</p>";
-                break;
-            case 'heading':
-                $level = $block['props']['level'];
-                $html .= "<h{$level}>{$innerHtml}</h{$level}>";
-                break;
-            case 'image':
-                $url = $block['props']['url'];
-                $html .= "<figure><img src=\"{$url}\"></figure>";
-                break;
-            // ... more block types
-        }
+    $content = $data['content'] ?? '';
+    
+    // New TipTap content is HTML string
+    if (is_string($content) && !empty($content)) {
+        return $content;  // Already HTML
     }
-    return $html;
+    
+    // Legacy BlockNote content is array of blocks
+    if (is_array($content)) {
+        return render_blocks($content);  // Convert to HTML
+    }
+    
+    return '';
 }
 ```
+
+> **Note:** The `render_blocks()` function is kept for backwards compatibility with content created before v3.1.0.
 
 ### 7.4 Custom Post Types
 
@@ -1129,7 +1126,7 @@ CREATE TABLE zed_content (
     title VARCHAR(255) NOT NULL,
     slug VARCHAR(255) NOT NULL UNIQUE,
     type VARCHAR(50) DEFAULT 'post',      -- 'post', 'page', 'portfolio', etc.
-    data JSON,                             -- BlockNote content, status, etc.
+    data JSON,                             -- TipTap HTML content, status, etc.
     plain_text LONGTEXT,                   -- Searchable text extraction
     author_id INT,
     created_at DATETIME,
@@ -1411,7 +1408,7 @@ The `_frontend/` directory contains the optional React-based editor:
 1. **Build command:** `npm run build` in `_frontend/`
 2. **Output:** `_frontend/dist/` — referenced by admin editor page
 3. **Communication:** Uses `/admin/api/save` endpoint
-4. **BlockNote format:** JSON structure stored in `data.content`
+4. **TipTap format:** HTML string stored in `data.content`
 
 ---
 
