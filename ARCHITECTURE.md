@@ -1,6 +1,6 @@
 # Zed CMS — Complete Architecture & Developer Reference
 
-> **Version:** 3.0.1  
+> **Version:** 3.1.0  
 > **Last Updated:** December 25, 2024  
 > **Target Audience:** Backend Developers, Frontend Developers, System Architects
 
@@ -250,15 +250,22 @@ ZedCMS/
 │
 ├── uploads/                  # User-uploaded media (YYYY/MM structure)
 │
-├── _frontend/                # React/Vite editor (optional)
-│   ├── src/
-│   └── dist/
+├── _frontend/                # React/Vite TipTap Editor
+│   ├── package.json
+│   ├── vite.config.js
+│   └── src/
+│       ├── main.jsx          # React entry point
+│       ├── editor.css        # Editor styles
+│       └── components/
+│           └── zed-editor.jsx # Main TipTap editor component
 │
 └── Documentation files...
-    ├── DOCS.md
-    ├── ADDON_DEVELOPMENT.md
-    ├── CONTRIBUTING.md
-    └── README.md
+    ├── ARCHITECTURE.md       # This file
+    ├── DOCS.md               # API Reference
+    ├── ADDON_DEVELOPMENT.md  # Addon guide
+    ├── CONTRIBUTING.md       # Contribution guide
+    ├── CHANGELOG.md          # Version history
+    └── README.md             # Getting started
 ```
 
 ---
@@ -578,7 +585,7 @@ These are set by the frontend controller and available in all templates:
 |----------|------|-------------|
 | `$post` | `array\|null` | Current post/page data |
 | `$posts` | `array` | Archive items |
-| `$htmlContent` | `string` | Rendered BlockNote content |
+| `$htmlContent` | `string` | Rendered TipTap/ProseMirror content |
 | `$is_home` | `bool` | Is homepage? |
 | `$is_single` | `bool` | Is single post? |
 | `$is_page` | `bool` | Is static page? |
@@ -1552,6 +1559,98 @@ For high-traffic sites, consider:
 - Object caching via Redis addon
 - Full-page cache via edge CDN
 - Database query caching
+
+---
+
+## 18. TipTap Editor System
+
+### 18.1 Overview
+
+Zed CMS v3.1.0 uses **TipTap** (a ProseMirror-based rich text editor) for content editing. The editor is built with React and compiled via Vite.
+
+**File:** `_frontend/src/components/zed-editor.jsx`
+
+### 18.2 Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      TipTap Editor Stack                         │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌────────────────┐    ┌────────────────┐    ┌───────────────┐  │
+│  │   React 18     │───▶│    TipTap      │───▶│  ProseMirror  │  │
+│  │   Component    │    │   Extensions   │    │     Core      │  │
+│  └────────────────┘    └────────────────┘    └───────────────┘  │
+│                                │                                 │
+│                                ▼                                 │
+│          ┌─────────────────────────────────────────┐            │
+│          │           Custom Extensions              │            │
+│          │  • Slash Commands (/)                    │            │
+│          │  • Callout Blocks                        │            │
+│          │  • YouTube Embeds                        │            │
+│          │  • Button Blocks                         │            │
+│          │  • Image Controls                        │            │
+│          └─────────────────────────────────────────┘            │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 18.3 Features
+
+| Feature | Description |
+|---------|-------------|
+| **Bubble Menu Toolbar** | Inline formatting toolbar on text selection (Bold, Italic, Underline, Strike, Color, Highlight, etc.) |
+| **Slash Commands** | Type `/` to insert blocks (headings, lists, quotes, images, etc.) |
+| **Keyboard Navigation** | Arrow keys + Enter to navigate and select slash menu items |
+| **Image Controls** | Resize (25%, 50%, 75%, 100%) and align (left, center, right) images |
+| **Custom Blocks** | Callout, YouTube embed, Button blocks |
+| **Dark Mode** | Inherits theme from admin panel |
+
+### 18.4 Extensions
+
+```javascript
+// Core Extensions
+import StarterKit from '@tiptap/starter-kit'
+import Image from '@tiptap/extension-image'
+import Link from '@tiptap/extension-link'
+import Underline from '@tiptap/extension-underline'
+import Subscript from '@tiptap/extension-subscript'
+import Superscript from '@tiptap/extension-superscript'
+import TextAlign from '@tiptap/extension-text-align'
+import TextStyle from '@tiptap/extension-text-style'
+import Highlight from '@tiptap/extension-highlight'
+import { Color } from '@tiptap/extension-text-style'
+
+// Custom Extensions (built-in)
+- Callout Block
+- YouTube Embed
+- Button Block
+- Slash Command Menu
+```
+
+### 18.5 Content Storage
+
+Content is stored in the `zed_content.data` JSON column:
+
+```json
+{
+  "content": "<p>TipTap HTML content...</p>",
+  "status": "published",
+  "excerpt": "Post excerpt...",
+  "featured_image": "/uploads/2024/12/image.webp"
+}
+```
+
+The `content` field contains rendered HTML from TipTap, making frontend rendering simple.
+
+### 18.6 Building the Editor
+
+```bash
+cd _frontend
+npm install
+npm run build      # Production build → content/themes/admin-default/assets/js/
+npm run dev        # Development with HMR
+```
 
 ---
 

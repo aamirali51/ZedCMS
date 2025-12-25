@@ -32,48 +32,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.1.0] - 2024-12-25
 
 ### Added
-- **API Contracts & Deprecation System**
-  - `Core\Deprecation` class for formal API deprecation tracking
-  - `zed_deprecated_function()` helper for marking deprecated functions
-  - `zed_deprecated_hook()` helper for marking deprecated events
-  - `zed_deprecated_argument()` helper for marking deprecated arguments
-  - Admin notice integration for deprecation warnings in debug mode
-  - `API_STABILITY.md` - Comprehensive API stability guide
-  - `VERSIONING.md` - Semantic versioning policy
-  - `CHANGELOG.md` - This file!
-
-- **Admin Menu Registration API**
-  - `zed_register_admin_menu()` for registering top-level menus
-  - `zed_register_admin_submenu()` for registering submenus
-  - `zed_register_capabilities()` for custom capabilities
-  - Automatic route registration for menu items
-  - Permission checks and layout wrapping
-  - Badge support for menu items
-  - Auto-hide menus when addon disabled
-
-- **Route Registration API**
-  - `zed_register_route()` for self-registering addon routes
-  - Pattern matching support (`{param}` syntax)
-  - Multiple HTTP method support
-  - Automatic permission checks
-  - Layout wrapping control
-  - Priority-based routing
-
-- **Test Addons**
-  - `test_menu_api.php` - Demonstrates Admin Menu API
-  - `test_route_api.php` - Demonstrates Route Registration API
-  - `test_deprecation.php` - Demonstrates Deprecation System
+- **TipTap Rich Text Editor**
+  - Replaced BlockNote with TipTap (ProseMirror-based) editor
+  - Bubble menu toolbar with text formatting (bold, italic, underline, strikethrough)
+  - Text color and highlight with color pickers
+  - Text alignment controls (left, center, right, justify)
+  - Subscript and superscript support
+  - Slash commands (`/`) with keyboard navigation (Arrow keys + Enter)
+  - Image controls (resize: 25%, 50%, 75%, 100% and alignment)
+  - Custom blocks: Callout, YouTube embed, Button
 
 ### Changed
-- Updated `ARCHITECTURE.md` with new APIs (v3.0.1)
+- Updated `ARCHITECTURE.md` with new APIs (v3.1.0)
 - Updated wiki documentation (`DOCS.md`, addon development guides)
 - Created comprehensive API reference guide (`admin-menu-api.md`)
 - Improved addon menu filtering to respect activation status
+- Editor bubble menu now renders as single horizontal line (sleeker UI)
+- Improved slash command keyboard navigation with proper Enter key selection
+
+### Removed
+- Legacy BlockNote editor components (`blocknote-editor.jsx`, `simple-editor.jsx`)
+- Unused slash menu components (`slash-dropdown-menu.jsx`, `command-list.jsx`, `drag-handle.jsx`)
+- Development/debug files (`check_*.php`, `test_*.php`, `migrate_*.php`)
+- Outdated documentation (`ZERO_BLUEPRINT.md`, `PROJECT_AUDIT_REPORT.md`, `nots.md`, `documentaton.md`)
+- Python script and text dumps (`fl.py`, `full_project_context.txt`, `users_schema.txt`)
 
 ### Fixed
 - Content status field now persists correctly in menu manager
 - Disabled addon menus no longer appear in admin sidebar
 - API endpoint routing for `/admin/api/save-menu` and `/admin/save-post`
+- Slash menu Enter key now correctly inserts selected block
 
 ---
 
