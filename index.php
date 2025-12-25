@@ -82,7 +82,26 @@ spl_autoload_register(function (string $class): void {
     }
 });
 
-// 4. Load system modules and addons from content/addons
+// 4. Autoload admin controllers (PSR-4 style autoloader for Admin\Controllers namespace)
+spl_autoload_register(function (string $class): void {
+    // Admin\Controllers\ContentController -> content/addons/_system/admin/controllers/ContentController.php
+    $prefix = 'Admin\\Controllers\\';
+    $baseDir = __DIR__ . '/content/addons/_system/admin/controllers/';
+    
+    $len = strlen($prefix);
+    if (strncmp($prefix, $class, $len) !== 0) {
+        return;
+    }
+    
+    $relativeClass = substr($class, $len);
+    $file = $baseDir . str_replace('\\', '/', $relativeClass) . '.php';
+    
+    if (file_exists($file)) {
+        require $file;
+    }
+});
+
+// 5. Load system modules and addons from content/addons
 $addonsDir = __DIR__ . '/content/addons';
 
 /**
@@ -122,7 +141,7 @@ $system_modules = [
 define('ZED_SYSTEM_MODULES', $system_modules);
 
 // Legacy constant for backward compatibility
-define('ZERO_SYSTEM_ADDONS', ['admin_addon.php', 'frontend_addon.php']);
+define('ZED_SYSTEM_ADDONS', ['admin_addon.php', 'frontend_addon.php']);
 
 if (is_dir($addonsDir)) {
     // ─────────────────────────────────────────────────────────────────────
@@ -219,3 +238,4 @@ if (is_dir($addonsDir)) {
 // 5. Initialize and run the App
 $app = new \Core\App($config);
 $app->run();
+

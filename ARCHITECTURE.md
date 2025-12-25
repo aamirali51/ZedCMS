@@ -199,7 +199,7 @@ ZedCMS/
 │   │   │   │   ├── menu_registry.php # Admin menu registration API (NEW)
 │   │   │   │   ├── route_registry.php # Route registration API (NEW)
 │   │   │   │   ├── routes.php    # Route dispatcher (~100 lines)
-│   │   │   │   └── routes/       # Modular route handlers
+│   │   │   │   └── routes/       # Modular route handlers (Legacy)
 │   │   │   │       ├── auth.php      # Login, logout, security
 │   │   │   │       ├── dashboard.php # Dashboard stats
 │   │   │   │       ├── content.php   # Content list, editor
@@ -209,9 +209,15 @@ ZedCMS/
 │   │   │   │       ├── users.php     # User management
 │   │   │   │       ├── media.php     # Media library
 │   │   │   │       ├── addons.php    # Addon manager
-│   │   │   │       ├── themes.php    # Theme manager
-│   │   │   │       └── api.php       # All API endpoints
+│   │   │   │       └── themes.php    # Theme manager
 │   │   │   │
+│   │   │   ├── controllers/      # Class-based Controllers (New)
+│   │   │   │   ├── BaseController.php # Shared logic
+│   │   │   │   ├── ContentController.php # Posts/Pages logic
+│   │   │   │   └── register_routes.php # Route registration
+│   │   │   │
+│   │   │   ├── api/              # API Endpoints
+│   │   │   │   └── media_upload.php # Unified media uploader
 │   │   │   │
 │   │   │   ├── frontend.php  # Frontend entry point
 │   │   │   └── frontend/     # Frontend sub-modules
@@ -240,10 +246,9 @@ ZedCMS/
 │   │   ├── aurora/           # Frontend theme
 │   │   └── starter-theme/    # Minimal starter
 │   │
-│   ├── uploads/              # User-uploaded media
 │   └── docs/                 # Documentation
 │
-├── uploads/                  # Symlink or direct uploads
+├── uploads/                  # User-uploaded media (YYYY/MM structure)
 │
 ├── _frontend/                # React/Vite editor (optional)
 │   ├── src/
@@ -1183,17 +1188,25 @@ CREATE TABLE zed_content_revisions (
     INDEX idx_content (content_id)
 );
 
--- Media library
+-- Media library (WordPress-style)
 CREATE TABLE zed_media (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    filename VARCHAR(255),
-    original_name VARCHAR(255),
+    filename VARCHAR(255) NOT NULL,
+    original_filename VARCHAR(255) NOT NULL,
+    file_path VARCHAR(500) NOT NULL,       -- Relative path: YYYY/MM/file.ext
+    url VARCHAR(500) NOT NULL,             -- Full URL
+    thumbnail_url VARCHAR(500),            -- 150x150
+    medium_url VARCHAR(500),               -- 300x300
+    large_url VARCHAR(500),                -- 1024x1024
+    file_size INT DEFAULT 0,
     mime_type VARCHAR(100),
-    size INT,
-    folder_id INT DEFAULT NULL,
-    metadata JSON,
+    width INT,
+    height INT,
+    alt_text VARCHAR(255),
+    caption TEXT,
     uploaded_by INT,
-    created_at DATETIME
+    uploaded_at DATETIME,
+    updated_at DATETIME
 );
 ```
 

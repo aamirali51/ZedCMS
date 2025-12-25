@@ -5,7 +5,7 @@ declare(strict_types=1);
 /**
  * Test Addon - Proof of Concept
  * 
- * Demonstrates the event-driven architecture of Zero CMS.
+ * Demonstrates the event-driven architecture of Zed CMS.
  * Listen to 'route_request' and claim the /hello URL.
  */
 

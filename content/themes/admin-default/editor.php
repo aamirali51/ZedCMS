@@ -567,11 +567,11 @@ $types = !empty($ZED_POST_TYPES) ? $ZED_POST_TYPES : [
 </div>
 
 <script>
-    window.ZERO_INITIAL_CONTENT = <?= $initialDataSafe ?>;
-    if (!window.ZERO_INITIAL_CONTENT || !Array.isArray(window.ZERO_INITIAL_CONTENT) || window.ZERO_INITIAL_CONTENT.length === 0) {
-        window.ZERO_INITIAL_CONTENT = [{ id: 'default_' + Date.now(), type: 'paragraph', props: { textColor: 'default', backgroundColor: 'default', textAlignment: 'left' }, content: [], children: [] }];
+    window.ZED_INITIAL_CONTENT = <?= $initialDataSafe ?>;
+    if (!window.ZED_INITIAL_CONTENT || !Array.isArray(window.ZED_INITIAL_CONTENT) || window.ZED_INITIAL_CONTENT.length === 0) {
+        window.ZED_INITIAL_CONTENT = [{ id: 'default_' + Date.now(), type: 'paragraph', props: { textColor: 'default', backgroundColor: 'default', textAlignment: 'left' }, content: [], children: [] }];
     }
-    window.zero_editor_content = window.ZERO_INITIAL_CONTENT;
+    window.zed_editor_content = window.ZED_INITIAL_CONTENT;
     
     let postId = "<?= htmlspecialchars($postId ?? '') ?>";
     const baseUrl = "<?= $base_url ?>";
@@ -669,7 +669,7 @@ document.getElementById('save-btn')?.addEventListener('click', async function() 
         slug: slugEl?.value || '',
         status: document.getElementById('post-status')?.value || 'draft',
         type: document.getElementById('post-type')?.value || 'post',
-        content: JSON.stringify(window.zero_editor_content || []),
+        content: JSON.stringify(window.zed_editor_content || []),
         data: {
             featured_image: featuredImageUrl,
             excerpt: document.getElementById('post-excerpt')?.value || '',

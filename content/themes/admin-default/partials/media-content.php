@@ -4,22 +4,8 @@
  * Features: Drag & Drop, Real-time Search, Clipboard Copy with Toast, WebP Optimization
  */
 $baseUrl = \Core\Router::getBasePath();
-$uploadApiUrl = \Core\Router::url('/admin/api/upload');
-$deleteUrl = \Core\Router::url('/admin/media/delete');
 
-// Build full site URL for sharing
-$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-$siteUrl = $protocol . '://' . $host;
-
-// Format file size nicely
-function formatBytes($bytes, $precision = 1) {
-    $units = ['B', 'KB', 'MB', 'GB'];
-    $bytes = max($bytes, 0);
-    $pow = floor(($bytes ? log($bytes) : 0) / log(1024));
-    $pow = min($pow, count($units) - 1);
-    return round($bytes / pow(1024, $pow), $precision) . ' ' . $units[$pow];
-}
+// Note: $uploadApiUrl, $deleteUrl, $siteUrl, and formatBytes() are provided by the route
 ?>
 
 <style>
@@ -575,18 +561,21 @@ function formatBytes($bytes, $precision = 1) {
             <?php else: ?>
                 <?php foreach ($files as $file): ?>
                 <div class="media-card" 
-                     data-url="<?php echo htmlspecialchars($siteUrl . $file['url']); ?>"
+                     data-id="<?php echo htmlspecialchars($file['id'] ?? ''); ?>"
+                     data-url="<?php echo htmlspecialchars($file['url']); ?>"
                      data-name="<?php echo htmlspecialchars(strtolower($file['name'])); ?>">
                     <img src="<?php echo htmlspecialchars($file['thumb']); ?>" 
                          alt="<?php echo htmlspecialchars($file['name']); ?>"
-                         loading="lazy">
+                         loading="lazy"
+                         onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%23f1f5f9%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 font-size=%2212%22 text-anchor=%22middle%22 fill=%22%2394a3b8%22>No Preview</text></svg>'">
                     
                     <!-- Checkbox -->
-                    <input type="checkbox" class="media-select-checkbox" value="<?php echo htmlspecialchars($file['name']); ?>">
+                    <input type="checkbox" class="media-select-checkbox" value="<?php echo htmlspecialchars($file['id'] ?? $file['name']); ?>">
                     
                     <!-- Delete Button -->
                     <button type="button" 
                             class="media-delete-btn" 
+                            data-id="<?php echo htmlspecialchars($file['id'] ?? ''); ?>"
                             data-file="<?php echo htmlspecialchars($file['name']); ?>"
                             title="Delete">
                         <span class="material-symbols-outlined" style="font-size: 18px;">delete</span>
@@ -599,6 +588,9 @@ function formatBytes($bytes, $precision = 1) {
                         </div>
                         <div class="media-card-meta">
                             <span class="media-card-size"><?php echo formatBytes($file['size']); ?></span>
+                            <?php if (!empty($file['width']) && !empty($file['height'])): ?>
+                            <span class="media-card-dims"><?php echo $file['width']; ?>×<?php echo $file['height']; ?></span>
+                            <?php endif; ?>
                             <?php if ($file['isWebp'] ?? false): ?>
                             <span class="media-card-webp">WebP</span>
                             <?php endif; ?>
@@ -778,32 +770,38 @@ function formatBytes($bytes, $precision = 1) {
         e.preventDefault();
         e.stopPropagation();
 
+        const mediaId = deleteBtn.dataset.id;
         const fileName = deleteBtn.dataset.file;
         if (!confirm('Delete "' + fileName + '" permanently?')) return;
 
         try {
-            const url = deleteUrl + '?file=' + encodeURIComponent(fileName);
-            const response = await fetch(url);
+            // Prefer ID-based deletion for database integrity
+            const params = mediaId ? 'id=' + encodeURIComponent(mediaId) : 'file=' + encodeURIComponent(fileName);
+            const response = await fetch(deleteUrl + '?' + params);
+            const result = await response.json();
             
-            // Remove card from DOM
-            const card = deleteBtn.closest('.media-card');
-            if (card) {
-                card.style.transform = 'scale(0.8)';
-                card.style.opacity = '0';
-                setTimeout(() => {
-                    card.remove();
-                    // Update count
-                    const remaining = grid.querySelectorAll('.media-card').length;
-                    if (countEl) countEl.textContent = remaining;
-                    
-                    // Show empty state if no files
-                    if (remaining === 0) {
-                        location.reload();
-                    }
-                }, 200);
+            if (result.success) {
+                // Remove card from DOM with animation
+                const card = deleteBtn.closest('.media-card');
+                if (card) {
+                    card.style.transform = 'scale(0.8)';
+                    card.style.opacity = '0';
+                    setTimeout(() => {
+                        card.remove();
+                        // Update count
+                        const remaining = grid.querySelectorAll('.media-card').length;
+                        if (countEl) countEl.textContent = remaining;
+                        
+                        // Show empty state if no files
+                        if (remaining === 0) {
+                            location.reload();
+                        }
+                    }, 200);
+                }
+                showToast('File deleted successfully');
+            } else {
+                showToast('Delete failed: ' + (result.error || 'Unknown error'), 'error');
             }
-            
-            showToast('File deleted successfully');
         } catch (err) {
             showToast('Delete failed: ' + err.message, 'error');
         }

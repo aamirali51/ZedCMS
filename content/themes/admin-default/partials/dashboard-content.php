@@ -156,7 +156,7 @@ $greeting = match(true) {
                         <?php foreach (array_slice($recent_content, 0, 5) as $item): 
                             $statusColor = ($item['status'] ?? 'draft') === 'published' ? 'emerald' : 'amber';
                         ?>
-                        <a href="<?= $base_url ?>/admin/editor?id=<?= $item['id'] ?>" class="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors group">
+                        <a href="<?= $base_url ?>/admin/content/edit?id=<?= $item['id'] ?>" class="flex items-center gap-4 px-6 py-4 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors group">
                             <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-gray-100 to-gray-50 dark:from-slate-700 dark:to-slate-600 flex items-center justify-center text-gray-400 dark:text-gray-500 group-hover:from-indigo-100 group-hover:to-indigo-50 dark:group-hover:from-indigo-900/40 dark:group-hover:to-indigo-800/40 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-all">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
@@ -178,7 +178,7 @@ $greeting = match(true) {
                             </div>
                             <h4 class="font-medium text-gray-900 dark:text-white mb-1">No content yet</h4>
                             <p class="text-gray-500 dark:text-gray-400 text-sm mb-4">Start creating your first piece of content</p>
-                            <a href="<?= $base_url ?>/admin/editor?new=true" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors">
+                            <a href="<?= $base_url ?>/admin/content/edit?new=true" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                                 Create Content
                             </a>
@@ -212,13 +212,13 @@ $greeting = match(true) {
                     <h3 class="font-bold text-gray-900 dark:text-white">Quick Actions</h3>
                 </div>
                 <div class="p-4 grid grid-cols-2 gap-3">
-                    <a href="<?= $base_url ?>/admin/editor?new=true&type=page" class="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50/50 dark:bg-slate-700/30 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all group">
+                    <a href="<?= $base_url ?>/admin/content/edit?new=true&type=page" class="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50/50 dark:bg-slate-700/30 hover:border-indigo-400 dark:hover:border-indigo-500 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-all group">
                         <div class="w-10 h-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center group-hover:scale-110 transition-transform">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                         </div>
                         <span class="text-sm font-medium text-gray-700 dark:text-slate-200">New Page</span>
                     </a>
-                    <a href="<?= $base_url ?>/admin/editor?new=true&type=post" class="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50/50 dark:bg-slate-700/30 hover:border-purple-400 dark:hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all group">
+                    <a href="<?= $base_url ?>/admin/content/edit?new=true&type=post" class="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50/50 dark:bg-slate-700/30 hover:border-purple-400 dark:hover:border-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all group">
                         <div class="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 flex items-center justify-center group-hover:scale-110 transition-transform">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                         </div>

@@ -1,6 +1,6 @@
 <?php
 /**
- * Zero CMS Admin Dashboard
+ * Zed CMS Admin Dashboard
  * 
  * Variables available from admin_addon.php:
  * - $total_pages, $total_posts, $total_content, $total_users, $total_addons
@@ -51,7 +51,7 @@ $chartDataJson = json_encode([
 <html class="light" lang="en"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Zero CMS Command Center</title>
+<title>Zed CMS Command Center</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700;800&amp;family=Noto+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
@@ -294,7 +294,7 @@ $chartDataJson = json_encode([
         <div class="flex justify-between items-start">
             <div>
                 <p class="text-sm font-semibold text-gray-800">
-                    <a href="<?= $base_url ?>/admin/editor?id=<?= $item['id'] ?>" class="hover:underline">
+                    <a href="<?= $base_url ?>/admin/content/edit?id=<?= $item['id'] ?>" class="hover:underline">
                         <?= htmlspecialchars($item['title'] ?: 'Untitled') ?>
                     </a>
                 </p>
@@ -312,7 +312,7 @@ $chartDataJson = json_encode([
         <div class="flex justify-between items-start">
             <div>
                 <p class="text-sm font-semibold text-gray-800">System Initialized</p>
-                <p class="text-xs text-gray-500 mt-0.5">Zero CMS core loaded successfully.</p>
+                <p class="text-xs text-gray-500 mt-0.5">Zed CMS core loaded successfully.</p>
             </div>
             <span class="text-[10px] text-gray-400 font-medium whitespace-nowrap">Just now</span>
         </div>
@@ -347,8 +347,8 @@ $chartDataJson = json_encode([
 
 <!-- Dashboard Data for Charts -->
 <script>
-    window.ZERO_DASHBOARD_DATA = <?= $chartDataJson ?>;
-    console.log('Dashboard Stats:', window.ZERO_DASHBOARD_DATA);
+    window.ZED_DASHBOARD_DATA = <?= $chartDataJson ?>;
+    console.log('Dashboard Stats:', window.ZED_DASHBOARD_DATA);
 </script>
 
 </body></html>

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Core;
 
 /**
- * Zero CMS Router (The Auto-API Foundation)
+ * Zed CMS Router (The Auto-API Foundation)
  * 
  * A dynamic, event-driven router that contains NO hardcoded routes.
  * Instead of defining routes here, addons listen to the 'route_request' event
@@ -124,7 +124,7 @@ final class Router
         // Decode URL encoding
         $uri = urldecode($uri);
 
-        // Auto-detect and strip base path (e.g., /Zero)
+        // Auto-detect and strip base path (e.g., /ZedCMS)
         $scriptName = $_SERVER['SCRIPT_NAME'] ?? '/index.php';
         $basePath = dirname($scriptName);
         if ($basePath !== '/' && $basePath !== '\\' && str_starts_with($uri, $basePath)) {
@@ -222,7 +222,7 @@ final class Router
     /**
      * Get the base path (subdirectory) if running in a subdirectory.
      *
-     * @return string The base path (e.g., '/Zero' or '').
+     * @return string The base path (e.g., '/ZedCMS' or '').
      */
     public static function getBasePath(): string
     {

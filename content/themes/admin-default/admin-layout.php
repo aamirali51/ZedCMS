@@ -169,7 +169,7 @@ $nav_items = zed_get_admin_menu_items();
         <!-- Right Actions -->
         <div class="flex items-center gap-3">
             <?php if ($current_page === 'content' || str_starts_with($current_page, 'cpt_')): ?>
-            <a href="<?= $base_url ?>/admin/editor?new=true<?= !empty($type) ? '&type=' . htmlspecialchars($type) : '' ?>" 
+            <a href="<?= $base_url ?>/admin/content/edit?new=true<?= !empty($type) ? '&type=' . htmlspecialchars($type) : '' ?>" 
                class="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg text-sm font-medium transition-colors">
                 <span class="material-symbols-outlined text-[18px]">add</span>
                 New <?= !empty($type) && $type !== 'post' ? ucfirst($type) : 'Content' ?>

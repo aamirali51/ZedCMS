@@ -76,7 +76,10 @@ require_once $frontendDir . '/seo_head.php';
 // 10. Caching API (standalone - file-based cache)
 require_once $frontendDir . '/cache.php';
 
-// 11. Context Registry (replaces global variables with proper object)
+// 11. Deprecation helpers (API stability system)
+require_once __DIR__ . '/helpers_deprecation.php';
+
+// 12. Context Registry (replaces global variables with proper object)
 require_once $frontendDir . '/context.php';
 
 // =============================================================================

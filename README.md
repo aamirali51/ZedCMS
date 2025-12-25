@@ -117,6 +117,30 @@ Documentation shouldn't be a browser tab away. Zed ships with a **Native Markdow
 
 ---
 
+## 📋 Versioning & API Stability
+
+**Current Version:** 3.1.0
+
+Zed CMS follows [Semantic Versioning 2.0.0](https://semver.org/):
+
+- **MAJOR** (3.x → 4.x) - Breaking changes (6+ month notice)
+- **MINOR** (3.0 → 3.1) - New features (100% backward compatible)
+- **PATCH** (3.0.0 → 3.0.1) - Bug fixes (always safe)
+
+### Our Promise
+
+✅ **No breaking changes in minor versions**  
+✅ **6+ month deprecation period**  
+✅ **Clear migration guides**  
+✅ **Semantic versioning strictly followed**
+
+**Documentation:**
+- [API Stability Guide](API_STABILITY.md) - What's safe to use
+- [Versioning Policy](VERSIONING.md) - Our promises
+- [Changelog](CHANGELOG.md) - Version history
+
+---
+
 ## 🤝 Contributing
 
 Zed is young, fast, and opinionated. We are looking for **Architects**, not just coders.

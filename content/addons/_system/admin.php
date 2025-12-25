@@ -38,20 +38,29 @@ $adminDir = __DIR__ . '/admin';
 // 1. RBAC System (roles, capabilities, access control)
 require_once $adminDir . '/rbac.php';
 
-// 2. Addon APIs (AJAX, notices, settings, metabox, enqueue)
+// 2. Deprecation helpers (API stability system)
+require_once __DIR__ . '/helpers_deprecation.php';
+
+// 3. Addon APIs (AJAX, notices, settings, metabox, enqueue)
 require_once $adminDir . '/api.php';
 
-// 3. Helper functions (content processing, image handling)
+// 4. Helper functions (content processing, image handling)
 require_once $adminDir . '/helpers.php';
 
-// 4. Rendering service (theme-agnostic view rendering)
+// 5. Rendering service (theme-agnostic view rendering)
 require_once $adminDir . '/renderer.php';
 
-// 5. Admin Menu Registry (addon menu registration API)
+// 6. Admin Menu Registry (addon menu registration API)
 require_once $adminDir . '/menu_registry.php';
 
-// 6. Route Registry (addon route registration API)
+// 7. Route Registry (addon route registration API)
 require_once $adminDir . '/route_registry.php';
 
-// 7. Route handlers (all /admin/* and /api/* routes)
+// 8. Deprecation admin notices (debug mode warnings)
+require_once $adminDir . '/deprecation_notices.php';
+
+// 9. Controller routes (class-based routing)
+require_once $adminDir . '/controllers/register_routes.php';
+
+// 10. Route handlers (all /admin/* and /api/* routes)
 require_once $adminDir . '/routes.php';

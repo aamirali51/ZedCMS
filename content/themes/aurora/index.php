@@ -91,7 +91,7 @@ $brand_color = zed_theme_option('brand_color', '#6366f1');
                 <?= htmlspecialchars($hero_subtitle) ?>
             </p>
             <div class="flex items-center justify-center gap-4">
-                <a href="<?= $base_url ?>/admin/editor?new=true" class="px-8 py-4 bg-white text-slate-900 font-semibold rounded-xl hover:bg-slate-100 transition-colors shadow-lg">
+                <a href="<?= $base_url ?>/admin/content/edit?new=true" class="px-8 py-4 bg-white text-slate-900 font-semibold rounded-xl hover:bg-slate-100 transition-colors shadow-lg">
                     Start Creating
                 </a>
                 <a href="#features" class="px-8 py-4 bg-white/10 text-white font-medium rounded-xl hover:bg-white/20 transition-colors border border-white/20">
@@ -182,7 +182,7 @@ $brand_color = zed_theme_option('brand_color', '#6366f1');
                 
                 <?php if (empty($latest_posts)): ?>
                 <div class="col-span-3 text-center py-12 text-slate-500">
-                    <p>No posts yet. <a href="<?= $base_url ?>/admin/editor?new=true" class="text-brand hover:underline">Create your first post</a></p>
+                    <p>No posts yet. <a href="<?= $base_url ?>/admin/content/edit?new=true" class="text-brand hover:underline">Create your first post</a></p>
                 </div>
                 <?php endif; ?>
             </div>

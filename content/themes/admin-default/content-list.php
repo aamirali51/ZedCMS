@@ -1,8 +1,8 @@
 <?php
 /**
- * Zero CMS Content List
+ * Zed CMS Content List
  * 
- * Displays content from zero_content table with:
+ * Displays content from zed_content table with:
  * - Status filtering (All/Published/Draft)
  * - Search by title/slug
  * - Pagination
@@ -35,8 +35,8 @@ try {
     $db = Database::getInstance();
     
     // Base query parts
-    $selectSql = "SELECT * FROM zero_content";
-    $countSql = "SELECT COUNT(*) FROM zero_content";
+    $selectSql = "SELECT * FROM zed_content";
+    $countSql = "SELECT COUNT(*) FROM zed_content";
     $whereClauses = [];
     $params = [];
     
@@ -131,7 +131,7 @@ $showingTo = min($offset + $perPage, $totalPosts);
 <html class="light" lang="en"><head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Zero CMS Content Manager</title>
+<title>Zed CMS Content Manager</title>
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
@@ -215,7 +215,7 @@ $showingTo = min($offset + $perPage, $totalPosts);
             <?php if ($search): ?>
                 <a href="<?= buildContentUrl($base_url, ['status' => $status]) ?>" class="text-sm text-gray-500 hover:text-gray-700">Clear</a>
             <?php endif; ?>
-            <a href="<?= $base_url ?>/admin/editor?new=true" class="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors shadow-sm">
+            <a href="<?= $base_url ?>/admin/content/edit?new=true" class="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors shadow-sm">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 New Entry
             </a>
@@ -273,7 +273,7 @@ $showingTo = min($offset + $perPage, $totalPosts);
                                 </div>
                                 <div class="ml-4">
                                     <div class="text-sm font-medium text-gray-900">
-                                        <a href="<?= $base_url ?>/admin/editor?id=<?php echo $post['id']; ?>" class="hover:underline">
+                                        <a href="<?= $base_url ?>/admin/content/edit?id=<?php echo $post['id']; ?>" class="hover:underline">
                                             <?php echo htmlspecialchars($post['title']); ?>
                                         </a>
                                     </div>
@@ -301,7 +301,7 @@ $showingTo = min($offset + $perPage, $totalPosts);
                         </td>
                         <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <div class="opacity-0 group-hover:opacity-100 transition-opacity flex justify-end gap-2">
-                                <a href="<?= $base_url ?>/admin/editor?id=<?php echo $post['id']; ?>" class="text-indigo-600 hover:text-indigo-900 border border-indigo-200 bg-indigo-50 px-2 py-1 rounded text-xs">Edit</a>
+                                <a href="<?= $base_url ?>/admin/content/edit?id=<?php echo $post['id']; ?>" class="text-indigo-600 hover:text-indigo-900 border border-indigo-200 bg-indigo-50 px-2 py-1 rounded text-xs">Edit</a>
                                 <a href="#" class="text-gray-600 hover:text-gray-900 border border-gray-200 bg-white px-2 py-1 rounded text-xs">View</a>
                                 <button onclick="if(confirm('Delete this content?')) window.location.href='<?= $base_url ?>/admin/content/delete?id=<?= $post['id'] ?>'" class="text-red-600 hover:text-red-900 border border-red-200 bg-red-50 px-2 py-1 rounded text-xs">Trash</button>
                             </div>

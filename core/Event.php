@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Core;
 
 /**
- * Zero CMS Event Manager (The Heart)
+ * Zed CMS Event Manager (The Heart)
  * 
  * A WordPress-inspired hook system using modern OOP PHP.
  * Provides the ability to register actions (do things) and filters (modify data).

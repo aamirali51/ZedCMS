@@ -9,7 +9,7 @@ use PDOException;
 use PDOStatement;
 
 /**
- * Zero CMS Database Wrapper (The Schemaless Engine)
+ * Zed CMS Database Wrapper (The Schemaless Engine)
  * 
  * A singleton PDO wrapper with JSON column support.
  * Optimized for a "schemaless" design where we heavily use JSON columns.
@@ -54,7 +54,7 @@ final class Database
     {
         $host = $config['host'] ?? 'localhost';
         $port = $config['port'] ?? 3306;
-        $name = $config['name'] ?? 'zero_cms';
+        $name = $config['name'] ?? 'zed_cms';
         $user = $config['user'] ?? 'root';
         $pass = $config['password'] ?? '';
         $charset = $config['charset'] ?? 'utf8mb4';

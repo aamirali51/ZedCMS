@@ -52,6 +52,13 @@ function zed_handle_api_routes(array $request, string $uri, string $themePath): 
     }
     
     // =========================================================================
+    // /admin/api/media/delete - Delete Media (GET/POST)
+    // =========================================================================
+    if ($uri === '/admin/api/media/delete') {
+        return zed_api_delete_media();
+    }
+    
+    // =========================================================================
     // /admin/api/categories - Get Categories (GET)
     // =========================================================================
     if ($uri === '/admin/api/categories' && $request['method'] === 'GET') {
@@ -323,61 +330,88 @@ function zed_api_save_content(): bool
  */
 function zed_api_upload_media(): bool
 {
+    require_once dirname(__DIR__) . '/api/media_upload.php';
+    zed_handle_media_upload();
+    
+    // The handler exits, but in case it doesn't:
+    Router::setHandled('');
+    return true;
+}
+
+/**
+ * API: Delete Media
+ */
+function zed_api_delete_media(): bool
+{
     header('Content-Type: application/json');
     
     if (!Auth::check()) {
-        echo json_encode(['success' => 0, 'error' => 'Not authenticated']);
+        echo json_encode(['success' => false, 'error' => 'Unauthorized']);
         Router::setHandled('');
         return true;
     }
     
-    if (!zed_current_user_can('upload_files')) {
-        echo json_encode(['success' => 0, 'error' => 'Permission denied']);
+    $mediaId = $_GET['id'] ?? $_POST['id'] ?? null;
+    $fileName = $_GET['file'] ?? $_POST['file'] ?? null;
+    
+    if (!$mediaId && !$fileName) {
+        echo json_encode(['success' => false, 'error' => 'No media ID or filename specified']);
         Router::setHandled('');
         return true;
     }
     
     try {
-        $uploadDir = dirname(dirname(dirname(dirname(__DIR__)))) . '/uploads';
+        $db = Database::getInstance();
+        $uploadBaseDir = dirname(dirname(dirname(dirname(dirname(__DIR__))))) . '/uploads';
         
-        if (!is_dir($uploadDir)) {
-            mkdir($uploadDir, 0755, true);
+        // Get media record
+        if ($mediaId) {
+            $media = $db->queryOne("SELECT * FROM zed_media WHERE id = :id", ['id' => $mediaId]);
+        } else {
+            $media = $db->queryOne("SELECT * FROM zed_media WHERE filename = :filename", ['filename' => $fileName]);
         }
         
-        // Handle file upload (from Editor.js or form)
-        $file = $_FILES['image'] ?? $_FILES['file'] ?? null;
-        
-        if (!$file || $file['error'] !== UPLOAD_ERR_OK) {
-            throw new Exception('No file uploaded or upload error');
+        if (!$media) {
+            echo json_encode(['success' => false, 'error' => 'Media not found']);
+            Router::setHandled('');
+            return true;
         }
         
-        $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'pdf', 'mp4', 'webm'];
+        $filePath = $media['file_path'] ?? '';
         
-        if (!in_array($ext, $allowed)) {
-            throw new Exception('File type not allowed');
+        // Delete main file
+        if ($filePath) {
+            $fullPath = $uploadBaseDir . '/' . $filePath;
+            if (file_exists($fullPath)) {
+                @unlink($fullPath);
+            }
+            
+            // Delete thumbnails (same folder)
+            $dirPath = dirname($fullPath);
+            $baseName = pathinfo($media['filename'], PATHINFO_FILENAME);
+            $extension = pathinfo($media['filename'], PATHINFO_EXTENSION);
+            
+            // Delete sized versions
+            $sizes = ['150x150', '300x300', '1024x1024'];
+            foreach ($sizes as $size) {
+                $thumbPath = $dirPath . '/' . $baseName . '-' . $size . '.' . $extension;
+                if (file_exists($thumbPath)) {
+                    @unlink($thumbPath);
+                }
+            }
         }
         
-        $filename = uniqid() . '-' . preg_replace('/[^a-z0-9.-]/i', '_', $file['name']);
-        $targetPath = $uploadDir . '/' . $filename;
-        
-        if (!move_uploaded_file($file['tmp_name'], $targetPath)) {
-            throw new Exception('Failed to save file');
-        }
-        
-        $baseUrl = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'])), '/');
-        $fileUrl = $baseUrl . '/uploads/' . $filename;
+        // Delete database record
+        $db->delete('zed_media', 'id = :id', ['id' => $media['id']]);
         
         echo json_encode([
-            'success' => 1,
-            'file' => [
-                'url' => $fileUrl,
-                'name' => $filename,
-            ]
+            'success' => true, 
+            'message' => 'Media deleted successfully',
+            'deleted_id' => $media['id']
         ]);
         
     } catch (Exception $e) {
-        echo json_encode(['success' => 0, 'error' => $e->getMessage()]);
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
     }
     
     Router::setHandled('');

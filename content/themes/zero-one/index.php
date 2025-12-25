@@ -221,7 +221,7 @@ $posts = function_exists('zed_get_latest_posts') ? zed_get_latest_posts(12) : []
                     <h2 class="text-3xl font-bold text-gray-900 mb-2">Latest Content</h2>
                     <p class="text-gray-600">Fresh posts and pages from your CMS</p>
                 </div>
-                <a href="<?php echo $base_url; ?>/admin/editor?new=true" class="hidden md:flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition-colors">
+                <a href="<?php echo $base_url; ?>/admin/content/edit?new=true" class="hidden md:flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-lg font-medium hover:bg-gray-800 transition-colors">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                     </svg>
@@ -287,7 +287,7 @@ $posts = function_exists('zed_get_latest_posts') ? zed_get_latest_posts(12) : []
                 </div>
                 <h3 class="text-xl font-bold text-gray-900 mb-3">No content yet</h3>
                 <p class="text-gray-600 mb-6 max-w-md mx-auto">Create your first page or post from the admin panel to see it displayed here.</p>
-                <a href="<?php echo $base_url; ?>/admin/editor?new=true" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-semibold hover:from-green-600 hover:to-emerald-700 transition-all shadow-lg shadow-green-500/30">
+                <a href="<?php echo $base_url; ?>/admin/content/edit?new=true" class="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-semibold hover:from-green-600 hover:to-emerald-700 transition-all shadow-lg shadow-green-500/30">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                     </svg>

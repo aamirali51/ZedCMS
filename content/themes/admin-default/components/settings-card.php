@@ -96,7 +96,7 @@
 </div>
 <div class="md:col-span-8">
 <div class="relative group">
-<input class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm h-11 transition-colors pl-10" id="site_title" name="site_title" type="text" value="Zero CMS - Ultimate Content Platform"/>
+<input class="block w-full rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm h-11 transition-colors pl-10" id="site_title" name="site_title" type="text" value="Zed CMS - Ultimate Content Platform"/>
 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 group-focus-within:text-primary transition-colors">
 <span class="material-symbols-outlined text-[20px]">title</span>
 </div>
@@ -155,7 +155,7 @@
 </div>
 </div>
 <div class="mt-8 text-center">
-<p class="text-sm text-gray-400">Zero CMS v2.4.0 © 2023</p>
+<p class="text-sm text-gray-400">Zed CMS v2.4.0 © 2023</p>
 </div>
 </div>
 
