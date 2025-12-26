@@ -84,6 +84,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
                     `email` VARCHAR(255) NOT NULL,
                     `password_hash` VARCHAR(255) NOT NULL,
+                    `display_name` VARCHAR(100) NULL,
+                    `bio` TEXT NULL,
+                    `avatar` VARCHAR(500) NULL,
+                    `social_links` JSON NULL,
                     `role` VARCHAR(50) NOT NULL DEFAULT 'subscriber' COMMENT 'admin, editor, author, subscriber',
                     `remember_token` VARCHAR(64) NULL COMMENT 'Hashed token for persistent login',
                     `last_login` DATETIME NULL COMMENT 'Last successful login timestamp',
@@ -144,17 +148,100 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ");
 
             // =====================================================================
-            // 8. Insert admin user with provided credentials
+            // 8. Create zed_content_revisions table (Version History)
+            // =====================================================================
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS `zed_content_revisions` (
+                    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                    `content_id` BIGINT UNSIGNED NOT NULL,
+                    `data` JSON NULL COMMENT 'Snapshot of content data',
+                    `author_id` BIGINT UNSIGNED NULL,
+                    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (`id`),
+                    INDEX `idx_content` (`content_id`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            ");
+
+            // =====================================================================
+            // 9. Create zed_tags table
+            // =====================================================================
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS `zed_tags` (
+                    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                    `name` VARCHAR(255) NOT NULL,
+                    `slug` VARCHAR(255) NOT NULL,
+                    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (`id`),
+                    UNIQUE INDEX `idx_slug` (`slug`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            ");
+
+            // =====================================================================
+            // 10. Create zed_media table (Media Library)
+            // =====================================================================
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS `zed_media` (
+                    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                    `filename` VARCHAR(255) NOT NULL,
+                    `original_filename` VARCHAR(255) NOT NULL,
+                    `file_path` VARCHAR(500) NOT NULL,
+                    `url` VARCHAR(500) NOT NULL,
+                    `thumbnail_url` VARCHAR(500) NULL,
+                    `medium_url` VARCHAR(500) NULL,
+                    `large_url` VARCHAR(500) NULL,
+                    `mime_type` VARCHAR(100) NOT NULL,
+                    `file_size` BIGINT UNSIGNED NOT NULL DEFAULT 0,
+                    `width` INT UNSIGNED NULL,
+                    `height` INT UNSIGNED NULL,
+                    `alt_text` VARCHAR(255) NULL,
+                    `caption` TEXT NULL,
+                    `folder_id` BIGINT UNSIGNED NULL,
+                    `uploaded_by` BIGINT UNSIGNED NULL,
+                    `uploaded_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    PRIMARY KEY (`id`),
+                    INDEX `idx_folder` (`folder_id`),
+                    INDEX `idx_mime` (`mime_type`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            ");
+
+            // =====================================================================
+            // 11. Create zed_comments table (v3.2.0 Comments System)
+            // =====================================================================
+            $pdo->exec("
+                CREATE TABLE IF NOT EXISTS `zed_comments` (
+                    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                    `post_id` BIGINT UNSIGNED NOT NULL,
+                    `parent_id` BIGINT UNSIGNED DEFAULT 0,
+                    `user_id` BIGINT UNSIGNED DEFAULT NULL,
+                    `author_name` VARCHAR(100) NOT NULL,
+                    `author_email` VARCHAR(255) NOT NULL,
+                    `author_url` VARCHAR(255) DEFAULT NULL,
+                    `content` TEXT NOT NULL,
+                    `status` ENUM('pending', 'approved', 'spam', 'trash') DEFAULT 'pending',
+                    `ip_address` VARCHAR(45) DEFAULT NULL,
+                    `user_agent` VARCHAR(255) DEFAULT NULL,
+                    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    PRIMARY KEY (`id`),
+                    INDEX `idx_post` (`post_id`),
+                    INDEX `idx_parent` (`parent_id`),
+                    INDEX `idx_status` (`status`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            ");
+
+            // =====================================================================
+            // 12. Insert admin user with provided credentials
             // =====================================================================
             $stmt = $pdo->prepare("SELECT id FROM users WHERE email = :email");
             $stmt->execute(['email' => $admin_email]);
             $adminId = 1;
             if (!$stmt->fetch()) {
                 $hashedPassword = password_hash($admin_pass, PASSWORD_DEFAULT);
-                $stmt = $pdo->prepare("INSERT INTO users (email, password_hash, role) VALUES (:email, :pass, :role)");
+                $stmt = $pdo->prepare("INSERT INTO users (email, password_hash, display_name, role) VALUES (:email, :pass, :name, :role)");
                 $stmt->execute([
                     'email' => $admin_email,
                     'pass'  => $hashedPassword,
+                    'name'  => 'Administrator',
                     'role'  => 'admin',
                 ]);
                 $adminId = (int)$pdo->lastInsertId();
@@ -172,7 +259,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ['meta_description', '', 1],
                 ['discourage_search_engines', '0', 1],
                 ['maintenance_mode', '0', 1],
-                ['debug_mode', '1', 1],
+                ['debug_mode', '0', 1], // Off by default for production
+                // Comments settings (v3.2.0)
+                ['comments_enabled', '1', 1],
+                ['comments_moderation', '1', 1],
+                ['comments_require_email', '1', 1],
+                ['comments_notify_admin', '1', 1],
+                // Active theme
+                ['active_theme', 'zenith', 1],
+                // Active addons - empty by default (only system modules load)
+                ['active_addons', '[]', 1],
             ];
             
             $optStmt = $pdo->prepare("INSERT IGNORE INTO zed_options (option_name, option_value, autoload) VALUES (?, ?, ?)");
@@ -288,7 +384,7 @@ return [
 
     'app' => [
         'name'    => 'Zed CMS',
-        'version' => '1.6.0',
+        'version' => '3.2.0',
         'debug'   => true,
     ],
 ];
@@ -297,11 +393,13 @@ PHP;
             file_put_contents(__DIR__ . '/config.php', $configContent);
 
             // =====================================================================
-            // 13. Redirect to admin login
+            // 13. Set success flag for display
             // =====================================================================
-            $folderName = basename(__DIR__);
-            header('Location: /' . $folderName . '/admin/login');
-            exit;
+            $success = true;
+            $scriptName = $_SERVER['SCRIPT_NAME'] ?? '/install.php';
+            $basePath = dirname($scriptName);
+            $basePath = ($basePath === '/' || $basePath === '\\') ? '' : $basePath;
+            $adminLoginUrl = $basePath . '/admin/login';
 
         } catch (PDOException $e) {
             $error = 'Database Error: ' . $e->getMessage();
@@ -397,7 +495,7 @@ PHP;
 </div>
 </div>
 <!-- Right Form Column -->
-<div class="flex-1 flex flex-col p-6 lg:p-10 overflow-y-auto max-h-[90vh]">
+<div class="flex-1 flex flex-col p-6 lg:p-10">
 <!-- Header -->
 <div class="flex flex-col gap-2 mb-10">
 <div class="flex items-center gap-2 text-primary mb-2">
@@ -421,6 +519,27 @@ PHP;
 </div>
 <?php endif; ?>
 
+<?php if ($success): ?>
+<!-- Success Message -->
+<div class="flex flex-col items-center justify-center text-center py-8">
+    <div class="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-400 to-green-600 flex items-center justify-center mb-6 shadow-lg shadow-green-500/30">
+        <span class="material-symbols-outlined text-white text-4xl">check</span>
+    </div>
+    <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-2">Installation Complete!</h2>
+    <p class="text-slate-500 dark:text-slate-400 mb-8 max-w-sm">
+        Zed CMS has been successfully installed. Your database is ready and your admin account has been created.
+    </p>
+    <a href="<?= htmlspecialchars($adminLoginUrl) ?>" 
+       class="relative overflow-hidden rounded-xl px-8 py-4 bg-gradient-to-r from-primary to-purple-600 text-white text-lg font-bold tracking-wide shadow-lg shadow-primary/30 hover:shadow-primary/50 hover:scale-[1.01] active:scale-[0.99] transition-all duration-200 inline-flex items-center gap-3">
+        <span class="material-symbols-outlined">login</span>
+        Go to Admin Login
+    </a>
+    <p class="text-sm text-slate-400 mt-6">
+        <span class="material-symbols-outlined text-amber-500 text-sm align-middle">warning</span>
+        Remember to delete <code class="bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">install.php</code> for security
+    </p>
+</div>
+<?php else: ?>
 <!-- Form Fields -->
 <form class="flex flex-col gap-6" method="POST" action="">
 <!-- Row 1: Host -->
@@ -505,6 +624,7 @@ PHP;
 </button>
 </div>
 </form>
+<?php endif; ?>
 <!-- Footer Help -->
 <div class="mt-auto pt-8 flex justify-center">
 <a class="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-primary transition-colors font-medium" href="#">

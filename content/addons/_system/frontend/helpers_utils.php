@@ -11,23 +11,7 @@ declare(strict_types=1);
 
 use Core\Event;
 
-/**
- * Calculate reading time in minutes
- * 
- * @param string|array $content Content string or blocks array
- * @return int Minutes to read (minimum 1)
- */
-function zed_reading_time(string|array $content): int
-{
-    if (is_array($content)) {
-        $content = zed_strip_blocks($content);
-    }
-    
-    $words = str_word_count(strip_tags($content));
-    $minutes = ceil($words / 200); // Average reading speed
-    
-    return max(1, (int)$minutes);
-}
+// NOTE: zed_reading_time() moved to theme-helpers.php with enhanced features (v3.2.0)
 
 /**
  * Get word count
