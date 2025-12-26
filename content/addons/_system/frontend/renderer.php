@@ -1,8 +1,13 @@
 <?php
 /**
- * Block Renderer Engine
+ * Content Renderer Engine
  * 
- * Converts BlockNote JSON to semantic HTML.
+ * Handles content rendering for the frontend:
+ * - NEW (v3.1.0+): TipTap content is stored as HTML and passed through directly
+ * - LEGACY: BlockNote JSON blocks are converted to HTML via render_blocks()
+ * 
+ * The frontend routes.php detects the format and only calls render_blocks()
+ * for legacy BlockNote content.
  * 
  * @package ZedCMS\System\Frontend
  */
@@ -12,7 +17,7 @@ declare(strict_types=1);
 use Core\Router;
 
 // =============================================================================
-// BLOCK RENDERING ENGINE
+// LEGACY BLOCK RENDERING ENGINE (for BlockNote JSON content)
 // =============================================================================
 
 /**

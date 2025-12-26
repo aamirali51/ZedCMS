@@ -21,8 +21,8 @@ Stop fighting with legacy codebases.
 | **Routing** | **Decentralized (Event Listeners)** | Static Tables / Regex Hell |
 | **Database** | **Direct PDO (JSON-Optimized)** | heavy ORM / EAV Nightmares |
 | **Media** | **Native WebP Pipeline + Batch Ops** | Requires 3rd Party Plugins |
-| **Editor** | **TipTap Block Editor (HTML)** | HTML WYSIWYG (Tag Soup) |
-| **Dark Mode** | **Built-in (localStorage)** | Requires Plugin |
+| **Editor** | **BlockNote (Notion-style)** | HTML WYSIWYG (Tag Soup) |
+| **Dark Mode** | **Built-in (Mantine Theme)** | Requires Plugin |
 | **Load Time** | **< 20ms Core Boot** | 200ms+ Core Boot |
 
 ---
@@ -53,12 +53,13 @@ This means you can replace the **entire Admin Panel** just by disabling one addo
 
 ## 🛠 Features for Developers
 
-### ✍️ TipTap Rich Text Editor
-No more `strip_tags()`. Content is saved as clean **HTML** using TipTap (ProseMirror-based).
+### ✍️ BlockNote Rich Text Editor
+Notion-style editing experience. Content is saved as clean **HTML**.
 *   **Clean Data:** Direct HTML output, no JSON conversion needed for frontend.
-*   **Slash Commands:** Type `/` to insert headings, lists, images, callouts.
-*   **Bubble Toolbar:** Select text for formatting (bold, italic, colors, links).
-*   **Theming:** Dynamic light/dark mode, CSS variable support.
+*   **Slash Commands:** Type `/` to insert headings, lists, images, tables.
+*   **Drag Handles:** Reorder blocks by dragging the side handle.
+*   **Formatting Toolbar:** Select text for formatting (bold, italic, colors, links).
+*   **Theming:** Dark mode support via Mantine UI.
 
 
 ### 🖼 Smart Media Pipeline

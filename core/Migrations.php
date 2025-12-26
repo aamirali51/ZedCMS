@@ -22,7 +22,7 @@ final class Migrations
     /**
      * Current CMS version
      */
-    public const VERSION = '2.0.0';
+    public const VERSION = '3.2.0';
 
     /**
      * Option names used for tracking
@@ -79,6 +79,53 @@ final class Migrations
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
                     
                     $pdo->exec($sql);
+                },
+            ],
+
+            '3.2.0' => [
+                // Create zed_comments table for comments system
+                function(\PDO $pdo) {
+                    $sql = "CREATE TABLE IF NOT EXISTS zed_comments (
+                        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+                        post_id INT UNSIGNED NOT NULL,
+                        parent_id INT UNSIGNED DEFAULT 0,
+                        user_id INT UNSIGNED DEFAULT NULL,
+                        author_name VARCHAR(100) NOT NULL,
+                        author_email VARCHAR(255) NOT NULL,
+                        author_url VARCHAR(255) DEFAULT NULL,
+                        content TEXT NOT NULL,
+                        status ENUM('pending', 'approved', 'spam', 'trash') DEFAULT 'pending',
+                        ip_address VARCHAR(45) DEFAULT NULL,
+                        user_agent VARCHAR(255) DEFAULT NULL,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        INDEX idx_post_id (post_id),
+                        INDEX idx_parent_id (parent_id),
+                        INDEX idx_status (status),
+                        INDEX idx_created_at (created_at)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci";
+                    
+                    $pdo->exec($sql);
+                },
+
+                // Add comments_enabled option
+                function(\PDO $pdo) {
+                    $stmt = $pdo->prepare("SELECT COUNT(*) FROM zed_options WHERE option_name = 'comments_enabled'");
+                    $stmt->execute();
+                    if ($stmt->fetchColumn() == 0) {
+                        $pdo->prepare("INSERT INTO zed_options (option_name, option_value, autoload) VALUES ('comments_enabled', '1', 1)")
+                            ->execute();
+                    }
+                },
+
+                // Add comments_moderation option (1 = require approval)
+                function(\PDO $pdo) {
+                    $stmt = $pdo->prepare("SELECT COUNT(*) FROM zed_options WHERE option_name = 'comments_moderation'");
+                    $stmt->execute();
+                    if ($stmt->fetchColumn() == 0) {
+                        $pdo->prepare("INSERT INTO zed_options (option_name, option_value, autoload) VALUES ('comments_moderation', '1', 1)")
+                            ->execute();
+                    }
                 },
             ],
         ];

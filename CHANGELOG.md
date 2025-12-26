@@ -29,6 +29,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [3.2.0] - 2024-12-26
+
+### Added
+- **BlockNote Editor Migration**
+  - Replaced TipTap with BlockNote for simpler, Notion-style editing
+  - Built-in slash menu with all block types (`/`)
+  - Drag handles for block reordering
+  - Formatting toolbar on text selection
+  - Tables with full CRUD operations
+  - Image uploads with drag-and-drop
+  - Dark mode support via Mantine theme
+
+### Changed
+- Editor packages: `@blocknote/core`, `@blocknote/react`, `@blocknote/mantine`
+- Styling: Mantine UI replaces custom CSS (80% less CSS code)
+- Updated `_frontend/package.json` to v3.0.0
+- Updated `ARCHITECTURE.md` with BlockNote references
+
+### Removed
+- TipTap packages (15+ individual extensions)
+- Tailwind CSS and PostCSS configuration
+- Custom TipTap extensions (`extensions/` folder)
+- Custom slash menu, bubble menu, table toolbar components
+
+---
+
 ## [3.1.0] - 2024-12-25
 
 ### Added
@@ -41,6 +67,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Slash commands (`/`) with keyboard navigation (Arrow keys + Enter)
   - Image controls (resize: 25%, 50%, 75%, 100% and alignment)
   - Custom blocks: Callout, YouTube embed, Button
+  - **Table Block** - Full-featured tables with header row, add/delete rows and columns
+  - **Toggle Block** - Collapsible accordion sections for FAQs and hidden content
 
 ### Changed
 - Updated `ARCHITECTURE.md` with new APIs (v3.1.0)

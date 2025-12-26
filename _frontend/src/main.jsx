@@ -1,7 +1,10 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 
-// Simple CSS imports - no Mantine!
+// Mantine core styles (required for BlockNote Mantine theme)
+import '@mantine/core/styles.css'
+
+// Minimal editor styles
 import './editor.css'
 
 import { ZedEditor } from './components/zed-editor'
@@ -9,16 +12,13 @@ import { ZedEditor } from './components/zed-editor'
 const rootElement = document.getElementById('tiptap-editor')
 
 if (rootElement) {
-    // Get initial data from PHP
-    let content = window.ZERO_INITIAL_CONTENT || null
+    // Get initial content from PHP
+    // Can be HTML string or BlockNote JSON array
+    let initialContent = window.ZERO_INITIAL_CONTENT || null
 
-    // Convert BlockNote format to TipTap format if needed
-    // TipTap uses ProseMirror JSON which is similar but not identical
-    let initialContent = null
-
-    if (content && Array.isArray(content)) {
-        // Convert BlockNote blocks to HTML for TipTap
-        initialContent = convertBlocksToHTML(content)
+    // If content is BlockNote JSON array, convert to HTML
+    if (initialContent && Array.isArray(initialContent)) {
+        initialContent = convertBlocksToHTML(initialContent)
     }
 
     ReactDOM.createRoot(rootElement).render(
@@ -27,13 +27,13 @@ if (rootElement) {
         </React.StrictMode>
     )
 
-    console.log('Zed TipTap Editor Mounted')
+    console.log('Zed BlockNote Editor Mounted')
 } else {
     console.error('Target container #tiptap-editor not found')
 }
 
 /**
- * Convert BlockNote blocks to HTML for TipTap
+ * Convert legacy BlockNote JSON blocks to HTML
  * This allows existing content to work with the new editor
  */
 function convertBlocksToHTML(blocks) {
@@ -64,6 +64,10 @@ function convertBlocksToHTML(blocks) {
             case 'image':
                 const url = props.url || props.src || ''
                 return url ? `<img src="${url}" />` : ''
+
+            case 'table':
+                // Handle table blocks
+                return '<table><tbody><tr><td></td></tr></tbody></table>'
 
             default:
                 return text ? `<p>${text}</p>` : ''

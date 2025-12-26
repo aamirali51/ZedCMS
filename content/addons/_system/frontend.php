@@ -30,7 +30,7 @@
  * - /{post_type}      → Custom post type archives
  * 
  * @package ZedCMS\System\Frontend
- * @version 3.0.0
+ * @version 3.2.0
  */
 
 declare(strict_types=1);
@@ -73,13 +73,22 @@ require_once $frontendDir . '/theme_parts.php';
 // 9. SEO Head (needs options, Event)
 require_once $frontendDir . '/seo_head.php';
 
-// 10. Caching API (standalone - file-based cache)
+// 10. Comments System (needs Database, Auth, Event)
+require_once $frontendDir . '/comments.php';
+
+// 11. Widgets/Sidebars System (needs Event, Database)
+require_once $frontendDir . '/sidebars.php';
+
+// 12. AJAX API (v3.2.0 - frontend content endpoints)
+require_once $frontendDir . '/ajax-api.php';
+
+// 13. Caching API (standalone - file-based cache)
 require_once $frontendDir . '/cache.php';
 
-// 11. Deprecation helpers (API stability system)
+// 12. Deprecation helpers (API stability system)
 require_once __DIR__ . '/helpers_deprecation.php';
 
-// 12. Context Registry (replaces global variables with proper object)
+// 13. Context Registry (replaces global variables with proper object)
 require_once $frontendDir . '/context.php';
 
 // =============================================================================

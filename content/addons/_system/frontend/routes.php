@@ -302,9 +302,16 @@ Event::on('route_request', function (array $request): void {
     
     if ($post) {
         $data = is_string($post['data'] ?? null) ? json_decode($post['data'], true) : ($post['data'] ?? []);
-        $blocks = $data['content'] ?? [];
-        $htmlContent = render_blocks($blocks);
-
+        $content = $data['content'] ?? null;
+        
+        // Detect content format and render appropriately
+        if (is_string($content) && !empty($content)) {
+            // NEW: TipTap content is already HTML
+            $htmlContent = $content;
+        } elseif (is_array($content) && !empty($content)) {
+            // LEGACY: BlockNote JSON needs conversion
+            $htmlContent = render_blocks($content);
+        }
         
         if (function_exists('zed_do_shortcodes')) {
             $htmlContent = zed_do_shortcodes($htmlContent);

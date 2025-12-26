@@ -1,7 +1,7 @@
 # Zed CMS — Complete Architecture & Developer Reference
 
-> **Version:** 3.1.0  
-> **Last Updated:** December 25, 2024  
+> **Version:** 3.2.0  
+> **Last Updated:** December 26, 2024  
 > **Target Audience:** Backend Developers, Frontend Developers, System Architects
 
 ---
@@ -250,14 +250,14 @@ ZedCMS/
 │
 ├── uploads/                  # User-uploaded media (YYYY/MM structure)
 │
-├── _frontend/                # React/Vite TipTap Editor
-│   ├── package.json
+├── _frontend/                # React/Vite BlockNote Editor (v3.0)
+│   ├── package.json          # Dependencies: @blocknote/*, @mantine/*
 │   ├── vite.config.js
 │   └── src/
 │       ├── main.jsx          # React entry point
-│       ├── editor.css        # Editor styles
+│       ├── editor.css        # Minimal editor overrides
 │       └── components/
-│           └── zed-editor.jsx # Main TipTap editor component
+│           └── zed-editor.jsx # BlockNote editor component
 │
 └── Documentation files...
     ├── ARCHITECTURE.md       # This file
@@ -597,7 +597,7 @@ These are set by the frontend controller and available in all templates:
 
 ### 7.3 Content Renderer
 
-**New in v3.1.0:** Content is stored as HTML directly from the TipTap editor. The renderer handles both new HTML content and legacy block-based JSON for backwards compatibility.
+**Updated in v3.2.0:** Content is stored as HTML directly from the BlockNote editor (migrated from TipTap in v3.2). The renderer handles HTML content and legacy block-based JSON for backwards compatibility.
 
 **File:** `_system/frontend/renderer.php`
 
@@ -610,12 +610,12 @@ function zed_render_content(array $post): string {
     
     $content = $data['content'] ?? '';
     
-    // New TipTap content is HTML string
+    // BlockNote/TipTap content is HTML string
     if (is_string($content) && !empty($content)) {
         return $content;  // Already HTML
     }
     
-    // Legacy BlockNote content is array of blocks
+    // Legacy BlockNote JSON content is array of blocks
     if (is_array($content)) {
         return render_blocks($content);  // Convert to HTML
     }

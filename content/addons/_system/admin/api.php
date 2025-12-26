@@ -834,6 +834,19 @@ function zed_get_admin_menu_items(): array
         $items[] = ['id' => 'media', 'label' => 'Media Library', 'icon' => 'perm_media', 'url' => $base . '/admin/media', 'position' => 50];
     }
     
+    // Comments (v3.2.0)
+    if (zed_current_user_can('moderate_comments')) {
+        $pending_count = function_exists('zed_total_comments') ? zed_total_comments('pending') : 0;
+        $items[] = [
+            'id' => 'comments',
+            'label' => 'Comments',
+            'icon' => 'comment',
+            'url' => $base . '/admin/comments',
+            'position' => 55,
+            'badge' => $pending_count > 0 ? (string)$pending_count : null,
+        ];
+    }
+    
     // Menus
     if (zed_current_user_can('manage_menus')) {
         $items[] = ['id' => 'menus', 'label' => 'Menus', 'icon' => 'menu', 'url' => $base . '/admin/menus', 'position' => 60];
@@ -858,6 +871,9 @@ function zed_get_admin_menu_items(): array
     // Themes
     if (zed_current_user_can('manage_themes')) {
         $items[] = ['id' => 'themes', 'label' => 'Themes', 'icon' => 'palette', 'url' => $base . '/admin/themes', 'position' => 85];
+        
+        // Widgets (v3.2.0) - under Themes since it's theme customization
+        $items[] = ['id' => 'widgets', 'label' => 'Widgets', 'icon' => 'widgets', 'url' => $base . '/admin/widgets', 'position' => 86];
     }
     
     // Wiki

@@ -85,6 +85,53 @@ zed_add_theme_setting('social_instagram', 'Instagram URL', 'text', '');
 zed_add_theme_setting('social_linkedin', 'LinkedIn URL', 'text', '');
 
 // =============================================================================
+// SIDEBARS (v3.2.0)
+// =============================================================================
+
+// Register sidebars for widgets
+if (function_exists('zed_register_sidebar')) {
+    // Main Blog Sidebar
+    zed_register_sidebar('main-sidebar', [
+        'name' => 'Main Sidebar',
+        'description' => 'Appears on blog archive and single posts',
+        'before_widget' => '<div id="%1$s" class="widget mb-8 p-6 bg-white dark:bg-zenith-dark-alt rounded-xl shadow-zenith-sm %2$s">',
+        'after_widget' => '</div>',
+        'before_title' => '<h4 class="widget-title text-lg font-heading font-bold text-zenith-heading dark:text-white mb-4 pb-3 border-b border-zenith-border dark:border-zenith-border-dark">',
+        'after_title' => '</h4>',
+    ]);
+    
+    // Footer Widget Area 1
+    zed_register_sidebar('footer-1', [
+        'name' => 'Footer Column 1',
+        'description' => 'First footer widget area',
+        'before_widget' => '<div id="%1$s" class="widget %2$s">',
+        'after_widget' => '</div>',
+        'before_title' => '<h5 class="widget-title text-white font-heading font-bold text-sm uppercase tracking-wider mb-4">',
+        'after_title' => '</h5>',
+    ]);
+    
+    // Footer Widget Area 2
+    zed_register_sidebar('footer-2', [
+        'name' => 'Footer Column 2',
+        'description' => 'Second footer widget area',
+        'before_widget' => '<div id="%1$s" class="widget %2$s">',
+        'after_widget' => '</div>',
+        'before_title' => '<h5 class="widget-title text-white font-heading font-bold text-sm uppercase tracking-wider mb-4">',
+        'after_title' => '</h5>',
+    ]);
+    
+    // Footer Widget Area 3
+    zed_register_sidebar('footer-3', [
+        'name' => 'Footer Column 3',
+        'description' => 'Third footer widget area',
+        'before_widget' => '<div id="%1$s" class="widget %2$s">',
+        'after_widget' => '</div>',
+        'before_title' => '<h5 class="widget-title text-white font-heading font-bold text-sm uppercase tracking-wider mb-4">',
+        'after_title' => '</h5>',
+    ]);
+}
+
+// =============================================================================
 // HELPER FUNCTIONS
 // =============================================================================
 

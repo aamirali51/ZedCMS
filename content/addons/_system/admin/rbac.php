@@ -61,6 +61,9 @@ function zed_get_role_capabilities(): array
             // Dashboard
             'view_dashboard',
             'view_analytics',
+            
+            // Comments (v3.2.0)
+            'moderate_comments',
         ],
         
         // Alias for admin
@@ -85,6 +88,9 @@ function zed_get_role_capabilities(): array
             
             // Dashboard
             'view_dashboard',
+            
+            // Comments (v3.2.0)
+            'moderate_comments',
         ],
         
         // Author - Can manage own content only

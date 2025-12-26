@@ -49,6 +49,12 @@ require_once $routesDir . '/addons.php';
 // Theme manager
 require_once $routesDir . '/themes.php';
 
+// Comments management (v3.2.0)
+require_once $routesDir . '/comments.php';
+
+// Widgets management (v3.2.0)
+require_once $routesDir . '/widgets.php';
+
 // API endpoints (save, upload, etc.)
 require_once $routesDir . '/api.php';
 
@@ -89,8 +95,11 @@ Event::on('route_request', function (array $request): void {
         'zed_handle_media_routes',
         'zed_handle_addons_routes',
         'zed_handle_themes_routes',
+        'zed_handle_comments_routes',
+        'zed_handle_widgets_routes',
         // API routes
         'zed_handle_api_routes',
+        'zed_handle_comment_api',
         // Addon-registered menu pages (catch-all for /admin/{addon_menu})
         'zed_handle_registered_menu_routes',
     ];
