@@ -82,7 +82,10 @@ require_once $frontendDir . '/sidebars.php';
 // 12. AJAX API (v3.2.0 - frontend content endpoints)
 require_once $frontendDir . '/ajax-api.php';
 
-// 13. Caching API (standalone - file-based cache)
+// 13. Theme Helpers (v3.2.0 - Post Formats, Social Share, Author Box, etc.)
+require_once $frontendDir . '/theme-helpers.php';
+
+// 14. Caching API (standalone - file-based cache)
 require_once $frontendDir . '/cache.php';
 
 // 12. Deprecation helpers (API stability system)

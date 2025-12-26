@@ -1,7 +1,7 @@
 # Zed CMS — Feature Guide
 
 > **A Simple Guide to Every Feature in Zed CMS**  
-> Last Updated: 2025-12-25 | Version 3.1.0
+> Last Updated: 2024-12-26 | Version 3.2.0
 
 ---
 
@@ -401,6 +401,110 @@ zed_schedule_event('cleanup', 'daily', function() {
 });
 ```
 
+## 🆕 New in v3.2.0
+
+### 11. Comments System (`/admin/comments`)
+
+Full comment moderation system:
+
+| Feature | Description |
+|---------|-------------|
+| **Status Tabs** | All, Pending, Approved, Spam, Trash |
+| **Moderation** | Approve, mark spam, trash, delete permanently |
+| **Search** | Find comments by content or author |
+| **Bulk Actions** | Moderate multiple comments at once |
+
+**Theme Usage:**
+```php
+<?php if (zed_comments_open($post)): ?>
+    <h3><?= zed_comment_count($post['id']) ?> Comments</h3>
+    <?php zed_comments_list($post['id']); ?>
+    <?php zed_comment_form($post['id']); ?>
+<?php endif; ?>
+```
+
+### 12. Widgets System (`/admin/widgets`)
+
+Drag-and-drop widget management:
+
+**Built-in Widgets:**
+| Widget | Description |
+|--------|-------------|
+| Recent Posts | Latest posts with dates |
+| Categories | Category list with counts |
+| Tags | Tag cloud |
+| Search | Search form |
+| Custom HTML | Raw HTML content |
+| Social Links | Social media icons |
+
+**Register Sidebar in Theme:**
+```php
+// In functions.php
+zed_register_sidebar('main-sidebar', [
+    'name' => 'Main Sidebar',
+    'description' => 'Appears on blog pages',
+]);
+
+// In template
+<?php zed_dynamic_sidebar('main-sidebar'); ?>
+```
+
+### 13. AJAX Loading
+
+Frontend JavaScript library for dynamic content:
+
+```html
+<script src="/addons/_system/assets/js/zed-frontend.js"></script>
+<script>
+// Infinite scroll
+Zed.infiniteScroll({
+    container: '.posts-grid',
+    url: '/api?action=get_posts',
+    render: (post) => `<article><h2>${post.title}</h2></article>`,
+});
+
+// Live search
+Zed.liveSearch({
+    input: '#search',
+    results: '#results',
+    url: '/api?action=search',
+});
+</script>
+```
+
+### 14. Theme Helpers
+
+Quick functions for common theme features:
+
+| Function | Purpose |
+|----------|---------|
+| `zed_reading_progress()` | Animated reading progress bar |
+| `zed_social_share($post)` | Social sharing buttons |
+| `zed_author_box($post)` | Author bio with avatar |
+| `zed_reading_time($post)` | "5 min read" estimate |
+| `zed_breadcrumbs($items)` | Breadcrumb navigation |
+| `zed_post_navigation($post)` | Previous/Next links |
+| `zed_get_post_format($post)` | Post format (video, gallery, etc.) |
+
+**Example:**
+```php
+<!-- In single.php -->
+<?php zed_reading_progress(['color' => '#6366f1']); ?>
+
+<article>
+    <?php zed_breadcrumbs([['label' => 'Blog', 'url' => '/blog'], ['label' => $post['title']]]); ?>
+    
+    <h1><?= $post['title'] ?></h1>
+    <span><?= zed_reading_time($post)['text'] ?></span>
+    
+    <div class="content"><?= $post['content'] ?></div>
+    
+    <?php zed_social_share($post, ['style' => 'buttons']); ?>
+    <?php zed_author_box($post); ?>
+    <?php zed_post_navigation($post); ?>
+</article>
+```
+
 ---
 
 ## 📊 Database Tables
@@ -408,11 +512,12 @@ zed_schedule_event('cleanup', 'daily', function() {
 | Table | Purpose |
 |-------|---------|
 | `zed_content` | Pages, posts, all content |
-| `users` | User accounts |
+| `zed_users` | User accounts |
 | `zed_categories` | Categories |
 | `zed_menus` | Navigation menus |
 | `zed_options` | Site settings |
 | `zed_content_revisions` | Version history |
+| `zed_comments` | Comments (v3.2.0) |
 
 ---
 

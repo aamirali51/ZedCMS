@@ -1667,6 +1667,11 @@ npm run dev        # Development with HMR
 | `_system/frontend/routes.php` | Frontend controller |
 | `_system/admin/routes.php` | Admin route handlers |
 | `_system/frontend/cache.php` | Caching API |
+| `_system/frontend/comments.php` | Comments API (v3.2.0) |
+| `_system/frontend/sidebars.php` | Widgets/Sidebars API (v3.2.0) |
+| `_system/frontend/ajax-api.php` | AJAX content API (v3.2.0) |
+| `_system/frontend/theme-helpers.php` | Theme helpers (v3.2.0) |
+| `_system/assets/js/zed-frontend.js` | Frontend JS library (v3.2.0) |
 
 ### Key Events
 
@@ -1691,6 +1696,16 @@ npm run dev        # Development with HMR
 | `zed_cache_set()` | Store in cache |
 | `zed_cache_get()` | Retrieve from cache |
 | `zed_cache_remember()` | Cache with callback |
+| `zed_get_comments()` | Get post comments (v3.2.0) |
+| `zed_comment_form()` | Render comment form (v3.2.0) |
+| `zed_register_sidebar()` | Register widget area (v3.2.0) |
+| `zed_register_widget()` | Register widget type (v3.2.0) |
+| `zed_dynamic_sidebar()` | Render sidebar (v3.2.0) |
+| `zed_reading_progress()` | Reading progress bar (v3.2.0) |
+| `zed_social_share()` | Social share buttons (v3.2.0) |
+| `zed_author_box()` | Author bio box (v3.2.0) |
+| `zed_reading_time()` | Estimated read time (v3.2.0) |
+| `zed_post_navigation()` | Prev/next post links (v3.2.0) |
 
 ---
 

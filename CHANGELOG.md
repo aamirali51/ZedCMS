@@ -32,26 +32,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.2.0] - 2024-12-26
 
 ### Added
+- **Comments System**
+  - Full comment moderation in admin panel (`/admin/comments`)
+  - Comment submission API: `zed_submit_comment()`, `zed_comment_form()`
+  - Comment retrieval: `zed_get_comments()`, `zed_comment_count()`
+  - Moderation functions: `zed_moderate_comment()`, `zed_delete_comment()`
+  - Status tabs: All, Pending, Approved, Spam, Trash
+  - RBAC capability: `moderate_comments`
+
+- **Widgets/Sidebars System**
+  - Sidebar registration: `zed_register_sidebar($id, $options)`
+  - Widget registration: `zed_register_widget($id, $options)`
+  - Sidebar rendering: `zed_dynamic_sidebar($id)`
+  - Admin drag-and-drop widget manager (`/admin/widgets`)
+  - 6 built-in widgets: Recent Posts, Categories, Tags, Search, Custom HTML, Social Links
+
+- **AJAX Loading Library** (`zed-frontend.js`)
+  - `Zed.infiniteScroll()` - Automatic loading on scroll
+  - `Zed.loadMore()` - Button-triggered loading
+  - `Zed.liveSearch()` - Search with debounce
+  - `Zed.ajaxFilter()` - Filter/sort without reload
+  - API endpoints: `/api?action=get_posts`, `/api?action=search`
+
+- **Theme Helpers** (`theme-helpers.php`)
+  - Post Formats: `zed_get_post_format()`, `zed_has_post_format()`
+  - Reading Progress: `zed_reading_progress()`
+  - Social Share: `zed_social_share()`
+  - Author Bio Box: `zed_author_box()`
+  - Reading Time: `zed_reading_time()`
+  - Breadcrumbs: `zed_breadcrumbs()`
+  - Post Navigation: `zed_post_navigation()`
+
 - **BlockNote Editor Migration**
-  - Replaced TipTap with BlockNote for simpler, Notion-style editing
-  - Built-in slash menu with all block types (`/`)
-  - Drag handles for block reordering
-  - Formatting toolbar on text selection
-  - Tables with full CRUD operations
-  - Image uploads with drag-and-drop
-  - Dark mode support via Mantine theme
+  - Replaced TipTap with BlockNote for Notion-style editing
+  - Built-in slash menu, drag handles, formatting toolbar
+  - Tables, image uploads, dark mode support
 
 ### Changed
-- Editor packages: `@blocknote/core`, `@blocknote/react`, `@blocknote/mantine`
-- Styling: Mantine UI replaces custom CSS (80% less CSS code)
-- Updated `_frontend/package.json` to v3.0.0
-- Updated `ARCHITECTURE.md` with BlockNote references
+- Editor packages now use `@blocknote/*` and `@mantine/*`
+- All admin routes now use consistent pattern with `admin-layout.php`
+- Sidebar menu now includes Comments and Widgets items
 
 ### Removed
 - TipTap packages (15+ individual extensions)
-- Tailwind CSS and PostCSS configuration
-- Custom TipTap extensions (`extensions/` folder)
-- Custom slash menu, bubble menu, table toolbar components
+- Custom TipTap extensions folder
 
 ---
 
