@@ -31,7 +31,8 @@ $description = $post['data']['excerpt'] ?? $post['data']['meta_description'] ?? 
     <meta name="description" content="<?= htmlspecialchars($description) ?>">
     <?php endif; ?>
     
-    <!-- Tailwind CDN for rapid development -->
+    
+    <!-- Tailwind CSS (CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -44,12 +45,12 @@ $description = $post['data']['excerpt'] ?? $post['data']['meta_description'] ?? 
                     },
                     colors: {
                         primary: {
-                            DEFAULT: 'var(--color-primary)',
-                            dark: 'var(--color-primary-dark)',
-                            light: 'var(--color-primary-light)',
+                            DEFAULT: 'var(--color-primary, #6366f1)',
+                            dark: 'var(--color-primary-dark, #4f46e5)',
+                            light: '#818cf8',
                         },
                         secondary: {
-                            DEFAULT: 'var(--color-secondary)',
+                            DEFAULT: 'var(--color-secondary, #7c3aed)',
                         },
                     },
                 },

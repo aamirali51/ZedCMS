@@ -29,6 +29,12 @@ if (!function_exists('zed_get_option')) {
     {
         static $optionsCache = null;
         
+        // Special: Clear cache (used after zed_set_option)
+        if ($name === '__CLEAR_CACHE__') {
+            $optionsCache = null;
+            return true;
+        }
+        
         // Load all options on first call (single query)
         if ($optionsCache === null) {
             $optionsCache = [];

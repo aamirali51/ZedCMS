@@ -237,7 +237,10 @@ function zed_set_option(string $name, mixed $value, bool $autoload = true): bool
         }
         
         // Clear cache so next get reflects the change
-        // Note: Static cache won't persist across requests anyway
+        if (function_exists('zed_get_option')) {
+            zed_get_option('__CLEAR_CACHE__');
+        }
+        
         return true;
     } catch (\Exception $e) {
         return false;
