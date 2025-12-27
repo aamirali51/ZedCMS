@@ -125,10 +125,14 @@ final class Router
         $uri = urldecode($uri);
 
         // Auto-detect and strip base path (e.g., /ZedCMS)
+        // Use case-insensitive comparison for Windows compatibility
         $scriptName = $_SERVER['SCRIPT_NAME'] ?? '/index.php';
         $basePath = dirname($scriptName);
-        if ($basePath !== '/' && $basePath !== '\\' && str_starts_with($uri, $basePath)) {
-            $uri = substr($uri, strlen($basePath));
+        if ($basePath !== '/' && $basePath !== '\\') {
+            // Case-insensitive check for Windows (URL might be lowercase, folder might be mixed case)
+            if (stripos($uri, $basePath) === 0) {
+                $uri = substr($uri, strlen($basePath));
+            }
         }
 
         // Ensure leading slash

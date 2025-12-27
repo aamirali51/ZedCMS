@@ -119,6 +119,10 @@ Event::on('route_request', function (array $request): void {
     $slug = trim($uri, '/');
     $isHome = ($slug === '');
     
+    // DEBUG: Log routing info
+    file_put_contents(__DIR__ . '/../../../../debug_route_log.txt', 
+        date('H:i:s') . " ROUTE: uri=$uri, slug=$slug\n", FILE_APPEND);
+    
     // Get core settings
     $homepage_mode = zed_get_option('homepage_mode', 'latest_posts');
     $page_on_front = (int)zed_get_option('page_on_front', '0');
@@ -243,22 +247,32 @@ Event::on('route_request', function (array $request): void {
                 }
             } else {
                 // CASE: Single Content by Slug (/{slug})
+                error_log("FRONTEND ROUTE: Looking up slug: $slug");
                 $zed_query['object'] = zed_get_post_by_slug($slug);
+                error_log("FRONTEND ROUTE: Found object: " . ($zed_query['object'] ? 'YES id='.$zed_query['object']['id'] : 'NO'));
                 
                 if ($zed_query['object']) {
                     $objData = is_string($zed_query['object']['data'] ?? null) 
                         ? json_decode($zed_query['object']['data'], true) 
                         : ($zed_query['object']['data'] ?? []);
                     
+                    $dbg = "Status=" . ($objData['status'] ?? 'MISSING');
+                    
                     if (($objData['status'] ?? '') !== 'published') {
                         $zed_query['object'] = null;
                         $zed_query['type'] = '404';
+                        $dbg .= " -> 404 (not published)";
                     } else {
                         $zed_query['type'] = ($zed_query['object']['type'] ?? 'post') === 'page' ? 'page' : 'single';
                         $zed_query['post_type'] = $zed_query['object']['type'] ?? 'post';
+                        $dbg .= " -> type=" . $zed_query['type'];
                     }
+                    file_put_contents(__DIR__ . '/../../../../debug_route_log.txt', 
+                        date('H:i:s') . " $dbg\n", FILE_APPEND);
                 } else {
                     $zed_query['type'] = '404';
+                    file_put_contents(__DIR__ . '/../../../../debug_route_log.txt', 
+                        date('H:i:s') . " -> 404 (object not found)\n", FILE_APPEND);
                 }
             }
         }
@@ -365,6 +379,8 @@ Event::on('route_request', function (array $request): void {
     if (!defined('ZED_ACTIVE_THEME')) {
         define('ZED_ACTIVE_THEME', $theme);
     }
+    
+    error_log("FRONTEND ROUTE: Theme=$theme, ThemePath=$themePath, QueryType=" . $zed_query['type']);
     
     $template = 'index.php';
     

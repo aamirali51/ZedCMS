@@ -26,6 +26,9 @@ if (!defined('ZED_VERSION')) {
 define('ZED_HEADER_BUILDER_PATH', __DIR__ . '/header-builder/');
 define('ZED_HEADER_BUILDER_URL', Router::getBasePath() . '/content/addons/header-builder/');
 
+// Include renderer
+require_once ZED_HEADER_BUILDER_PATH . 'renderer.php';
+
 /**
  * Header Builder Elements Registry
  */
