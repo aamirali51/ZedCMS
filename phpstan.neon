@@ -9,5 +9,4 @@ parameters:
         - cache (?)
         - _frontend (?)
         - _reference (?)
-    checkMissingIterableValueType: false
     reportUnmatchedIgnoredErrors: false
