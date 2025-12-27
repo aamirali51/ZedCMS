@@ -26,6 +26,9 @@ function zed_render_header_builder(): string {
     
     ob_start();
     ?>
+    <!-- Material Symbols Font (required for header builder icons) -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+    
     <!-- Header Builder Output -->
     <header class="hb-header bg-white dark:bg-gray-900 shadow-sm relative z-40">
         <!-- Desktop Header -->
