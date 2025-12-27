@@ -123,19 +123,22 @@ This is a deliberate API design choice to:
 
 Internally, a context registry is being introduced to reduce reliance on globals — while keeping the public API stable.
 
-### Code Style & Conventions
-
 ZedCMS favors:
 - Readability over abstraction
 - Explicit arrays over deep object graphs
 - Simple control flow over indirection
 
-It does not currently include:
-- Automated tests
-- CI workflows
-- Static analysis
+## Running Tests
 
-These are planned, but architecture and usability were prioritized first.
+ZedCMS includes a lightweight, zero-dependency test suite. No Composer or PHPUnit required.
+
+```bash
+php tests/run.php
+```
+
+The test runner discovers all `*Test.php` files in `tests/` and executes `test_*` methods. Current coverage includes:
+- `Core\Event` — Hook registration, priority ordering, filters
+- `Core\Router` — URI normalization, pattern matching, segments
 
 ## When should you use ZedCMS?
 
