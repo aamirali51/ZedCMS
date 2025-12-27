@@ -56,7 +56,7 @@ final class Router
         Event::trigger('route_request', $request);
 
         // Check if any addon handled the request
-        // @phpstan-ignore if.alwaysFalse (event callbacks modify self::$handled)
+        /** @phpstan-ignore-next-line Event callbacks modify self::$handled */
         if (self::$handled) {
             return self::$response;
         }
@@ -65,7 +65,7 @@ final class Router
         Event::trigger('route_not_found', $request);
         
         // If still not handled after 404 event, return default 404
-        // @phpstan-ignore if.alwaysFalse (event callbacks modify self::$handled)
+        /** @phpstan-ignore-next-line Event callbacks modify self::$handled */
         if (self::$handled) {
             return self::$response;
         }
