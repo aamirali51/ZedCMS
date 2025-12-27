@@ -47,8 +47,8 @@ final class Router
         $request = [
             'uri'    => $uri,
             'method' => strtoupper($method),
-            'query'  => $_GET ?? [],
-            'body'   => $_POST ?? [],
+            'query'  => $_GET,
+            'body'   => $_POST,
         ];
 
         // Fire the route_request event - addons will listen to this!
@@ -56,17 +56,19 @@ final class Router
         Event::trigger('route_request', $request);
 
         // Check if any addon handled the request
-        if (!self::$handled) {
-            // No handler claimed this URL - fire 404 event
-            Event::trigger('route_not_found', $request);
-            
-            // If still not handled, return default 404
-            if (!self::$handled) {
-                return self::notFound($uri);
-            }
+        if (self::$handled) {
+            return self::$response;
         }
-
-        return self::$response;
+        
+        // No handler claimed this URL - fire 404 event
+        Event::trigger('route_not_found', $request);
+        
+        // If still not handled after 404 event, return default 404
+        if (self::$handled) {
+            return self::$response;
+        }
+        
+        return self::notFound($uri);
     }
 
     /**
