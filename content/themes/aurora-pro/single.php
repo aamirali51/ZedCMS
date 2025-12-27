@@ -28,8 +28,8 @@ $categories = $data['categories'] ?? [];
 $readingTime = function_exists('aurora_reading_time') ? aurora_reading_time($content) : 3;
 
 // Theme settings
-$showReadingTime = zed_theme_option('show_reading_time', true);
-$showPostNav = zed_theme_option('show_post_navigation', true);
+$showReadingTime = aurora_option('show_reading_time', true);
+$showPostNav = aurora_option('show_post_navigation', true);
 ?>
 <?php include __DIR__ . '/parts/head.php'; ?>
 <?php include __DIR__ . '/parts/header.php'; ?>

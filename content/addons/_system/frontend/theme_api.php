@@ -332,12 +332,13 @@ function zed_render_theme_scripts(): string
 }
 
 /**
- * Load active theme's functions.php during app_ready
- * This allows themes to register hooks, post types, and settings
+ * Load active theme's functions.php during app_init
+ * This allows themes to register hooks, post types, settings, AND routes.
+ * Uses high priority (100) to ensure admin modules are loaded first.
  */
-Event::on('app_ready', function(): void {
+Event::on('app_init', function(): void {
     // Get active theme from database
-    $activeTheme = zed_get_option('active_theme', 'aurora');
+    $activeTheme = zed_get_option('active_theme', 'aurora-pro');
     
     // Build path to theme's directory
     $themesDir = dirname(__DIR__, 3) . '/themes';
@@ -356,4 +357,4 @@ Event::on('app_ready', function(): void {
     if (file_exists($functionsPath)) {
         require_once $functionsPath;
     }
-}, 5); // Priority 5 = runs early, before route dispatch
+}, 100); // Priority 100 = runs late in app_init, after admin modules loaded

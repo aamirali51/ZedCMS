@@ -14,13 +14,13 @@ use Core\Router;
 $base_url = Router::getBasePath();
 
 // Get theme settings
-$showHero = zed_theme_option('show_hero', true);
-$showFeatured = zed_theme_option('show_featured', true);
-$showNewsletter = zed_theme_option('show_newsletter', true);
-$showSidebar = zed_theme_option('show_sidebar', true);
-$heroTitle = zed_theme_option('hero_title', 'Welcome to Our Blog');
-$heroSubtitle = zed_theme_option('hero_subtitle', 'Discover stories, insights, and inspiration');
-$featuredCount = (int) zed_theme_option('featured_count', 3);
+$showHero = aurora_option('show_hero', true);
+$showFeatured = aurora_option('show_featured', true);
+$showNewsletter = aurora_option('show_newsletter', true);
+$showSidebar = aurora_option('show_sidebar', true);
+$heroTitle = aurora_option('hero_title', 'Welcome to Our Blog');
+$heroSubtitle = aurora_option('hero_subtitle', 'Discover stories, insights, and inspiration');
+$featuredCount = (int) aurora_option('featured_count', 3);
 
 // Get featured posts (pinned or latest)
 $featuredPosts = array_slice($posts ?? [], 0, $featuredCount);
@@ -287,8 +287,8 @@ $regularPosts = array_slice($posts ?? [], $featuredCount);
                     <?php if ($showNewsletter): ?>
                     <!-- Newsletter Widget -->
                     <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white">
-                        <h3 class="font-bold mb-2"><?= htmlspecialchars(zed_theme_option('newsletter_title', 'Subscribe')) ?></h3>
-                        <p class="text-indigo-100 text-sm mb-4"><?= htmlspecialchars(zed_theme_option('newsletter_text', 'Get updates delivered to your inbox.')) ?></p>
+                        <h3 class="font-bold mb-2"><?= htmlspecialchars(aurora_option('newsletter_title', 'Subscribe')) ?></h3>
+                        <p class="text-indigo-100 text-sm mb-4"><?= htmlspecialchars(aurora_option('newsletter_text', 'Get updates delivered to your inbox.')) ?></p>
                         <form class="space-y-3">
                             <input type="email" placeholder="Enter your email" class="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-xl placeholder-indigo-200 text-white focus:outline-none focus:ring-2 focus:ring-white/50">
                             <button type="submit" class="w-full px-4 py-3 bg-white text-indigo-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors">

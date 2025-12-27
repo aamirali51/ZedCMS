@@ -27,6 +27,39 @@ define('AURORA_PRO_URL', Router::getBasePath() . '/content/themes/aurora-pro');
 $AURORA_CONFIG = require __DIR__ . '/config.php';
 
 // =============================================================================
+// ADMIN PANEL ROUTE
+// =============================================================================
+
+// Register theme settings page route
+// Note: functions.php loads on app_init which is after admin modules, so zed_register_route exists
+if (function_exists('zed_register_route')) {
+    // Handle both GET and POST for display and form submission
+    zed_register_route([
+        'path' => '/admin/aurora-settings',
+        'method' => ['GET', 'POST'],
+        'capability' => 'manage_themes',
+        'wrap_layout' => false,
+        'priority' => 10,
+        'callback' => function($request, $uri, $params) {
+            require AURORA_PRO_PATH . '/panel/theme-panel.php';
+        },
+    ]);
+}
+
+// Add admin menu item for theme settings
+Event::on('zed_admin_menu', function($menu) {
+    $menu[] = [
+        'id' => 'aurora-settings',
+        'label' => 'Aurora Pro',
+        'icon' => 'palette',
+        'url' => Router::getBasePath() . '/admin/aurora-settings',
+        'position' => 85,
+        'capability' => 'manage_themes',
+    ];
+    return $menu;
+});
+
+// =============================================================================
 // LAYOUT SYSTEM - Theme Settings Registration
 // =============================================================================
 
@@ -147,11 +180,24 @@ if (function_exists('zed_register_post_type')) {
 // =============================================================================
 
 /**
+ * Get an Aurora Pro theme option from the database
+ * Uses the 'aurora_' prefix to match what the theme panel saves
+ * 
+ * @param string $key Option key (without prefix)
+ * @param mixed $default Default value if not set
+ * @return mixed Option value
+ */
+function aurora_option(string $key, mixed $default = ''): mixed
+{
+    return zed_get_option('aurora_' . $key, $default);
+}
+
+/**
  * Get the active layout for the theme
  */
 function aurora_get_layout(): string
 {
-    return (string) zed_theme_option('site_layout', 'blog');
+    return (string) aurora_option('site_layout', 'blog');
 }
 
 /**
@@ -185,12 +231,53 @@ function aurora_component(string $name, array $vars = []): void
 
 /**
  * Calculate reading time for content
+ * Handles both string content and array content (TipTap/Editor.js JSON)
  */
-function aurora_reading_time(string $content): int
+function aurora_reading_time(mixed $content): int
 {
+    // If content is an array (Editor.js/TipTap JSON), extract text
+    if (is_array($content)) {
+        $content = aurora_extract_text_from_blocks($content);
+    }
+    
+    // Ensure string
+    $content = (string) $content;
+    
     $wordCount = str_word_count(strip_tags($content));
     $readingTime = ceil($wordCount / 200); // 200 words per minute
     return max(1, (int) $readingTime);
+}
+
+/**
+ * Extract plain text from Editor.js/TipTap block content
+ */
+function aurora_extract_text_from_blocks(array $blocks): string
+{
+    $text = '';
+    
+    foreach ($blocks as $block) {
+        if (is_string($block)) {
+            $text .= $block . ' ';
+            continue;
+        }
+        
+        if (is_array($block)) {
+            // Handle Editor.js format
+            if (isset($block['data']['text'])) {
+                $text .= strip_tags($block['data']['text']) . ' ';
+            }
+            // Handle TipTap format
+            if (isset($block['content'])) {
+                $text .= aurora_extract_text_from_blocks($block['content']) . ' ';
+            }
+            // Handle text nodes
+            if (isset($block['text'])) {
+                $text .= $block['text'] . ' ';
+            }
+        }
+    }
+    
+    return trim($text);
 }
 
 /**
@@ -222,8 +309,8 @@ function aurora_featured_image(array $post, string $size = 'large'): string
  */
 function aurora_get_fonts_url(): string
 {
-    $headingFont = zed_theme_option('heading_font', 'inter');
-    $bodyFont = zed_theme_option('body_font', 'inter');
+    $headingFont = aurora_option('heading_font', 'inter');
+    $bodyFont = aurora_option('body_font', 'inter');
     
     $fontMap = [
         'inter' => 'Inter:wght@400;500;600;700;800',
@@ -256,9 +343,9 @@ function aurora_get_fonts_url(): string
  */
 function aurora_get_color_css(): string
 {
-    $primary = zed_theme_option('primary_color', '#4f46e5');
-    $secondary = zed_theme_option('secondary_color', '#7c3aed');
-    $accent = zed_theme_option('accent_color', '#ec4899');
+    $primary = aurora_option('primary_color', '#4f46e5');
+    $secondary = aurora_option('secondary_color', '#7c3aed');
+    $accent = aurora_option('accent_color', '#ec4899');
     
     return ":root {
         --color-primary: {$primary};
@@ -296,7 +383,7 @@ Event::on('zed_after_content', function(array $post, array $data): void {
         return;
     }
     
-    if (zed_theme_option('show_author_bio', true) !== '1' && zed_theme_option('show_author_bio', true) !== true) {
+    if (aurora_option('show_author_bio', true) !== '1' && aurora_option('show_author_bio', true) !== true) {
         return;
     }
     
@@ -311,7 +398,7 @@ Event::on('zed_after_content', function(array $post, array $data): void {
         return;
     }
     
-    if (zed_theme_option('show_share_buttons', true) !== '1' && zed_theme_option('show_share_buttons', true) !== true) {
+    if (aurora_option('show_share_buttons', true) !== '1' && aurora_option('show_share_buttons', true) !== true) {
         return;
     }
     
@@ -326,7 +413,7 @@ Event::on('zed_after_content', function(array $post, array $data): void {
         return;
     }
     
-    if (zed_theme_option('show_related_posts', true) !== '1' && zed_theme_option('show_related_posts', true) !== true) {
+    if (aurora_option('show_related_posts', true) !== '1' && aurora_option('show_related_posts', true) !== true) {
         return;
     }
     
@@ -337,7 +424,7 @@ Event::on('zed_after_content', function(array $post, array $data): void {
  * Inject dark mode script
  */
 Event::on('zed_footer', function(): void {
-    if (zed_theme_option('dark_mode', true) !== '1' && zed_theme_option('dark_mode', true) !== true) {
+    if (aurora_option('dark_mode', true) !== '1' && aurora_option('dark_mode', true) !== true) {
         return;
     }
     

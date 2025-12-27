@@ -14,9 +14,9 @@ use Core\Router;
 $base_url = Router::getBasePath();
 
 // Get settings
-$showFeatured = zed_theme_option('show_featured', true);
-$showCategories = zed_theme_option('show_categories', true);
-$showNewsletter = zed_theme_option('show_newsletter', true);
+$showFeatured = aurora_option('show_featured', true);
+$showCategories = aurora_option('show_categories', true);
+$showNewsletter = aurora_option('show_newsletter', true);
 
 // Split posts for different sections
 $featuredPost = $posts[0] ?? null;
@@ -283,8 +283,8 @@ $trendingPosts = array_slice($posts ?? [], 0, 5);
                     <?php if ($showNewsletter): ?>
                     <!-- Newsletter -->
                     <div class="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white">
-                        <h3 class="font-bold mb-2"><?= htmlspecialchars(zed_theme_option('newsletter_title', 'Get Daily Updates')) ?></h3>
-                        <p class="text-indigo-100 text-sm mb-4"><?= htmlspecialchars(zed_theme_option('newsletter_text', 'Subscribe for the latest news.')) ?></p>
+                        <h3 class="font-bold mb-2"><?= htmlspecialchars(aurora_option('newsletter_title', 'Get Daily Updates')) ?></h3>
+                        <p class="text-indigo-100 text-sm mb-4"><?= htmlspecialchars(aurora_option('newsletter_text', 'Subscribe for the latest news.')) ?></p>
                         <form class="space-y-3">
                             <input type="email" placeholder="Your email" class="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-xl placeholder-indigo-200 text-white focus:outline-none focus:ring-2 focus:ring-white/50">
                             <button type="submit" class="w-full px-4 py-3 bg-white text-indigo-600 font-semibold rounded-xl hover:bg-gray-100 transition-colors">

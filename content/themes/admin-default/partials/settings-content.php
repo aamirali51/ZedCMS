@@ -372,7 +372,14 @@ $debug_mode = $options['debug_mode'] ?? '0';
                 <span class="material-symbols-outlined tab-icon text-[20px]">search</span>
                 SEO
             </button>
-            <?php if (function_exists('zed_get_theme_settings') && !empty(zed_get_theme_settings())): ?>
+            <?php 
+            // Hide Theme tab if theme has its own premium settings panel (e.g., Aurora Pro)
+            $activeTheme = defined('ZED_ACTIVE_THEME') ? ZED_ACTIVE_THEME : '';
+            $themesWithOwnPanel = ['aurora-pro']; // Themes that have their own settings panel
+            $hasOwnPanel = in_array($activeTheme, $themesWithOwnPanel);
+            
+            if (function_exists('zed_get_theme_settings') && !empty(zed_get_theme_settings()) && !$hasOwnPanel): 
+            ?>
             <button class="tab-button" data-tab="theme">
                 <span class="material-symbols-outlined tab-icon text-[20px]">palette</span>
                 Theme
@@ -541,7 +548,7 @@ $debug_mode = $options['debug_mode'] ?? '0';
             </div>
         </div>
         
-        <?php if (function_exists('zed_get_theme_settings') && !empty(zed_get_theme_settings())): ?>
+        <?php if (function_exists('zed_get_theme_settings') && !empty(zed_get_theme_settings()) && !$hasOwnPanel): ?>
         <!-- ========== THEME TAB ========== -->
         <div class="settings-panel" id="panel-theme">
             <div class="settings-card">

@@ -1,0 +1,313 @@
+/**
+ * Aurora Pro - Theme Panel Styles
+ * Premium styling for the theme options panel
+ */
+
+/* Material Icons */
+.material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* Sidebar Tab Styles */
+.panel-tab {
+    color: #6b7280;
+    background: transparent;
+}
+
+.panel-tab:hover {
+    color: #374151;
+    background: #f3f4f6;
+}
+
+.panel-tab.active {
+    color: #4f46e5;
+    background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+}
+
+.panel-tab.active .material-symbols-outlined {
+    color: #4f46e5;
+}
+
+/* Setting Cards */
+.setting-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 24px;
+    transition: all 0.2s;
+}
+
+.setting-card:hover {
+    border-color: #d1d5db;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.setting-label {
+    display: block;
+    font-weight: 600;
+    font-size: 15px;
+    color: #111827;
+}
+
+.setting-desc {
+    font-size: 13px;
+    color: #6b7280;
+    margin-top: 2px;
+}
+
+/* Layout Selector */
+.layout-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px;
+    background: #f9fafb;
+    border: 2px solid #e5e7eb;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.layout-option:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+}
+
+.layout-option.active,
+.layout-option:has(input:checked) {
+    background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+    border-color: #6366f1;
+}
+
+.layout-option .material-symbols-outlined {
+    color: #6b7280;
+}
+
+.layout-option.active .material-symbols-outlined,
+.layout-option:has(input:checked) .material-symbols-outlined {
+    color: #4f46e5;
+}
+
+/* Toggle Switch */
+.toggle {
+    position: relative;
+    display: inline-block;
+    width: 52px;
+    height: 28px;
+    flex-shrink: 0;
+}
+
+.toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #e5e7eb;
+    border-radius: 28px;
+    transition: all 0.3s;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    border-radius: 50%;
+    transition: all 0.3s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.toggle input:checked+.toggle-slider {
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+}
+
+.toggle input:checked+.toggle-slider:before {
+    transform: translateX(24px);
+}
+
+.toggle input:focus+.toggle-slider {
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+/* Form Inputs */
+.aurora-input {
+    width: 100%;
+    padding: 12px 16px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    font-size: 14px;
+    color: #111827;
+    transition: all 0.2s;
+}
+
+.aurora-input:hover {
+    background: #f3f4f6;
+    border-color: #d1d5db;
+}
+
+.aurora-input:focus {
+    outline: none;
+    background: white;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.aurora-select {
+    width: 100%;
+    padding: 12px 16px;
+    padding-right: 40px;
+    background: #f9fafb url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 20 20' fill='%236b7280'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E") no-repeat right 12px center;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    font-size: 14px;
+    color: #111827;
+    appearance: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.aurora-select:hover {
+    background-color: #f3f4f6;
+    border-color: #d1d5db;
+}
+
+.aurora-select:focus {
+    outline: none;
+    background-color: white;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* Color Picker */
+.aurora-color {
+    width: 48px;
+    height: 48px;
+    padding: 2px;
+    background: white;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.aurora-color:hover {
+    border-color: #d1d5db;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.aurora-color::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.aurora-color::-webkit-color-swatch {
+    border: none;
+    border-radius: 8px;
+}
+
+/* Range Slider */
+.aurora-range {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    outline: none;
+}
+
+.aurora-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(99, 102, 241, 0.4);
+    transition: all 0.2s;
+}
+
+.aurora-range::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+}
+
+.aurora-range::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 6px rgba(99, 102, 241, 0.4);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.panel-section:not(.hidden) {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Scrollbar */
+aside::-webkit-scrollbar,
+main::-webkit-scrollbar {
+    width: 6px;
+}
+
+aside::-webkit-scrollbar-track,
+main::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+aside::-webkit-scrollbar-thumb,
+main::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+}
+
+aside::-webkit-scrollbar-thumb:hover,
+main::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    aside {
+        width: 56px !important;
+    }
+
+    aside .panel-tab span:not(.material-symbols-outlined) {
+        display: none;
+    }
+
+    aside .panel-tab {
+        justify-content: center;
+        padding: 12px !important;
+    }
+
+    aside>div:last-child {
+        display: none;
+    }
+}

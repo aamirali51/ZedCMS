@@ -14,15 +14,15 @@ use Core\Router;
 
 $base_url = Router::getBasePath();
 $site_name = function_exists('zed_get_site_name') ? zed_get_site_name() : 'ZedCMS';
-$copyright = zed_theme_option('footer_copyright', '© ' . date('Y') . ' ' . $site_name);
-$tagline = zed_theme_option('footer_tagline', 'Built with ZedCMS');
+$copyright = aurora_option('footer_copyright', '© ' . date('Y') . ' ' . $site_name);
+$tagline = aurora_option('footer_tagline', 'Built with ZedCMS');
 
 // Social links
-$twitter = zed_theme_option('social_twitter', '');
-$facebook = zed_theme_option('social_facebook', '');
-$instagram = zed_theme_option('social_instagram', '');
-$linkedin = zed_theme_option('social_linkedin', '');
-$github = zed_theme_option('social_github', '');
+$twitter = aurora_option('social_twitter', '');
+$facebook = aurora_option('social_facebook', '');
+$instagram = aurora_option('social_instagram', '');
+$linkedin = aurora_option('social_linkedin', '');
+$github = aurora_option('social_github', '');
 ?>
     </main><!-- End main content -->
 

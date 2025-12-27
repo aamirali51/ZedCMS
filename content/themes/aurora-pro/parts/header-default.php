@@ -13,9 +13,9 @@ use Core\Router;
 
 $base_url = Router::getBasePath();
 $site_name = function_exists('zed_get_site_name') ? zed_get_site_name() : 'ZedCMS';
-$sticky = zed_theme_option('sticky_header', true);
-$showSearch = zed_theme_option('show_search', true);
-$darkMode = zed_theme_option('dark_mode', true);
+$sticky = aurora_option('sticky_header', true);
+$showSearch = aurora_option('show_search', true);
+$darkMode = aurora_option('dark_mode', true);
 $layout = aurora_get_layout();
 ?>
 <body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-sans antialiased min-h-screen flex flex-col">

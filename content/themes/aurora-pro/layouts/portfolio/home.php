@@ -25,9 +25,9 @@ if (empty($projects)) {
 }
 
 // Get settings
-$showHero = zed_theme_option('show_hero', true);
-$heroTitle = zed_theme_option('hero_title', 'My Portfolio');
-$heroSubtitle = zed_theme_option('hero_subtitle', 'A collection of my creative work');
+$showHero = aurora_option('show_hero', true);
+$heroTitle = aurora_option('hero_title', 'My Portfolio');
+$heroSubtitle = aurora_option('hero_subtitle', 'A collection of my creative work');
 
 // Get categories for filtering
 $categories = function_exists('zed_get_categories') ? array_slice(zed_get_categories([]), 0, 10) : [];
