@@ -1,0 +1,13 @@
+parameters:
+    level: 5
+    paths:
+        - core
+    excludePaths:
+        - content/themes
+        - content/addons
+        - uploads
+        - cache
+        - _frontend
+        - _reference
+    checkMissingIterableValueType: false
+    reportUnmatchedIgnoredErrors: false

@@ -1,5 +1,7 @@
 # ZedCMS
 
+[![CI](https://github.com/aamirali51/ZedCMS/actions/workflows/ci.yml/badge.svg)](https://github.com/aamirali51/ZedCMS/actions/workflows/ci.yml)
+
 A lightweight, drop-in CMS for shared hosting — built to escape WordPress bloat without becoming a framework.
 
 ZedCMS is an opinionated, minimal CMS written for people who want to upload files via FTP, edit content in a modern block editor, and ship fast — without Composer, SSH, containers, or framework ceremony.
@@ -139,6 +141,21 @@ php tests/run.php
 The test runner discovers all `*Test.php` files in `tests/` and executes `test_*` methods. Current coverage includes:
 - `Core\Event` — Hook registration, priority ordering, filters
 - `Core\Router` — URI normalization, pattern matching, segments
+
+## Static Analysis
+
+The core is analyzed with [PHPStan](https://phpstan.org/) at level 5.
+
+```bash
+# Requires PHPStan installed globally or via Composer
+phpstan analyse --configuration=phpstan.neon
+```
+
+## Continuous Integration
+
+GitHub Actions runs on every push:
+- **Tests** — PHP 8.2 and 8.3
+- **Static Analysis** — PHPStan level 5
 
 ## When should you use ZedCMS?
 
