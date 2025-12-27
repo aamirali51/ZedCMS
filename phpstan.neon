@@ -3,11 +3,11 @@ parameters:
     paths:
         - core
     excludePaths:
-        - content/themes
-        - content/addons
-        - uploads
-        - cache
-        - _frontend
-        - _reference
+        - content/themes (?)
+        - content/addons (?)
+        - uploads (?)
+        - cache (?)
+        - _frontend (?)
+        - _reference (?)
     checkMissingIterableValueType: false
     reportUnmatchedIgnoredErrors: false
