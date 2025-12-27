@@ -246,15 +246,15 @@ zed_register_route([
 /**
  * Register API endpoints
  */
-Event::on('zed_api_routes', function($uri, $request) {
-    // Save header builder config
-    if ($uri === '/admin/api/header-builder/save' && $request['method'] === 'POST') {
+
+// Save header builder config
+zed_register_route([
+    'path' => '/admin/api/header-builder/save',
+    'method' => 'POST',
+    'capability' => 'manage_settings',
+    'wrap_layout' => false,
+    'callback' => function($request, $uri, $params) {
         header('Content-Type: application/json');
-        
-        if (!function_exists('zed_current_user_can') || !zed_current_user_can('manage_settings')) {
-            echo json_encode(['success' => false, 'error' => 'Permission denied']);
-            return true;
-        }
         
         $input = json_decode(file_get_contents('php://input'), true);
         $device = $input['device'] ?? 'desktop';
@@ -265,17 +265,17 @@ Event::on('zed_api_routes', function($uri, $request) {
         } else {
             echo json_encode(['success' => false, 'error' => 'Failed to save']);
         }
-        return true;
-    }
-    
-    // Save element settings
-    if ($uri === '/admin/api/header-builder/save-elements' && $request['method'] === 'POST') {
+    },
+]);
+
+// Save element settings
+zed_register_route([
+    'path' => '/admin/api/header-builder/save-elements',
+    'method' => 'POST',
+    'capability' => 'manage_settings',
+    'wrap_layout' => false,
+    'callback' => function($request, $uri, $params) {
         header('Content-Type: application/json');
-        
-        if (!function_exists('zed_current_user_can') || !zed_current_user_can('manage_settings')) {
-            echo json_encode(['success' => false, 'error' => 'Permission denied']);
-            return true;
-        }
         
         $input = json_decode(file_get_contents('php://input'), true);
         $settings = $input['settings'] ?? [];
@@ -285,11 +285,16 @@ Event::on('zed_api_routes', function($uri, $request) {
         } else {
             echo json_encode(['success' => false, 'error' => 'Failed to save']);
         }
-        return true;
-    }
-    
-    // Load header builder config
-    if ($uri === '/admin/api/header-builder/load' && $request['method'] === 'GET') {
+    },
+]);
+
+// Load header builder config
+zed_register_route([
+    'path' => '/admin/api/header-builder/load',
+    'method' => 'GET',
+    'capability' => 'manage_settings',
+    'wrap_layout' => false,
+    'callback' => function($request, $uri, $params) {
         header('Content-Type: application/json');
         
         $device = $_GET['device'] ?? 'all';
@@ -311,11 +316,8 @@ Event::on('zed_api_routes', function($uri, $request) {
                 'data' => zed_get_header_config($device),
             ]);
         }
-        return true;
-    }
-    
-    return false;
-});
+    },
+]);
 
 /**
  * Render header from builder config

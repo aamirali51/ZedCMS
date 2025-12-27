@@ -3,3 +3,10 @@
 09:27:35 ROUTE: uri=/demo-api-design-best-practices, slug=demo-api-design-best-practices
 09:27:35 Status=published -> type=single
 14:36:46 ROUTE: uri=/, slug=
+14:48:15 ROUTE: uri=/, slug=
+14:48:38 ROUTE: uri=/, slug=
+14:48:40 ROUTE: uri=/, slug=
+14:52:09 ROUTE: uri=/, slug=
+14:52:42 ROUTE: uri=/, slug=
+14:52:54 ROUTE: uri=/contact, slug=contact
+14:52:54 -> 404 (object not found)
