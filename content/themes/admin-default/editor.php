@@ -43,18 +43,17 @@ if ($postId) {
     }
 }
 
-// Editor content
-$jsonContent = isset($data['content']) ? json_encode($data['content']) : '[]';
-$defaultBlock = [[
-    'id' => uniqid('block_'),
-    'type' => 'paragraph',
-    'props' => ['textColor' => 'default', 'backgroundColor' => 'default', 'textAlignment' => 'left'],
-    'content' => [],
-    'children' => [],
-]];
+// Editor content handling
+// Content should be BlockNote JSON array (we save JSON, not HTML)
+$contentRaw = $data['content'] ?? null;
 
-$decoded = json_decode($jsonContent, true);
-$initialDataSafe = (!is_array($decoded) || empty($decoded)) ? json_encode($defaultBlock) : $jsonContent;
+if (is_array($contentRaw) && !empty($contentRaw)) {
+    // Content is BlockNote blocks array - pass it directly
+    $initialDataSafe = json_encode($contentRaw);
+} else {
+    // Empty content or new post - use empty array, editor will add default block
+    $initialDataSafe = '[]';
+}
 
 $currentType = $post['type'] ?? ($_GET['type'] ?? 'post');
 
@@ -567,10 +566,8 @@ $types = !empty($ZED_POST_TYPES) ? $ZED_POST_TYPES : [
 </div>
 
 <script>
+    // BlockNote JSON blocks from database
     window.ZED_INITIAL_CONTENT = <?= $initialDataSafe ?>;
-    if (!window.ZED_INITIAL_CONTENT || !Array.isArray(window.ZED_INITIAL_CONTENT) || window.ZED_INITIAL_CONTENT.length === 0) {
-        window.ZED_INITIAL_CONTENT = [{ id: 'default_' + Date.now(), type: 'paragraph', props: { textColor: 'default', backgroundColor: 'default', textAlignment: 'left' }, content: [], children: [] }];
-    }
     window.zed_editor_content = window.ZED_INITIAL_CONTENT;
     
     let postId = "<?= htmlspecialchars($postId ?? '') ?>";
@@ -669,7 +666,7 @@ document.getElementById('save-btn')?.addEventListener('click', async function() 
         slug: slugEl?.value || '',
         status: document.getElementById('post-status')?.value || 'draft',
         type: document.getElementById('post-type')?.value || 'post',
-        content: JSON.stringify(window.zed_editor_content || []),
+        content: window.zed_editor_content || [], // Pass as array, NOT stringified
         data: {
             featured_image: featuredImageUrl,
             excerpt: document.getElementById('post-excerpt')?.value || '',

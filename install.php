@@ -266,7 +266,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ['comments_require_email', '1', 1],
                 ['comments_notify_admin', '1', 1],
                 // Active theme
-                ['active_theme', 'zenith', 1],
+                ['active_theme', 'starter-theme', 1],
                 // Active addons - empty by default (only system modules load)
                 ['active_addons', '[]', 1],
             ];

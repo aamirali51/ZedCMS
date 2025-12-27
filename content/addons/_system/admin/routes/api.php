@@ -137,6 +137,13 @@ function zed_handle_api_routes(array $request, string $uri, string $themePath): 
         return zed_api_activate_theme();
     }
     
+    // =========================================================================
+    // /admin/api/cache/clear - Clear Cache (POST)
+    // =========================================================================
+    if ($uri === '/admin/api/cache/clear' && $request['method'] === 'POST') {
+        return zed_api_clear_cache();
+    }
+    
     return false;
 }
 
@@ -265,8 +272,8 @@ function zed_api_save_content(): bool
         $data = $input['data'] ?? [];
         
         // Merge top-level fields into data object for backward compatibility
-        // The frontend may send status, featured_image, etc. at top level
-        $topLevelFields = ['status', 'featured_image', 'excerpt', 'category'];
+        // The frontend may send status, featured_image, content, etc. at top level
+        $topLevelFields = ['status', 'featured_image', 'excerpt', 'category', 'content'];
         foreach ($topLevelFields as $field) {
             if (isset($input[$field]) && !isset($data[$field])) {
                 $data[$field] = $input[$field];
@@ -283,17 +290,19 @@ function zed_api_save_content(): bool
             $slug = strtolower(trim(preg_replace('/[^A-Za-z0-9-]+/', '-', $title)));
         }
         
+        // Ensure content is stored as array, not string
+        // If content is a JSON string (from old frontend), decode it
+        if (isset($data['content']) && is_string($data['content'])) {
+            $decoded = json_decode($data['content'], true);
+            if ($decoded !== null && is_array($decoded)) {
+                $data['content'] = $decoded; // Store as array
+            }
+        }
+        
         // Extract plain text for search
         $plainText = '';
-        if (isset($data['content'])) {
-            $content = $data['content'];
-            if (is_string($content)) {
-                $decoded = json_decode($content, true);
-                if ($decoded) $content = $decoded;
-            }
-            if (is_array($content)) {
-                $plainText = zed_extract_plain_text_from_blocks($content);
-            }
+        if (isset($data['content']) && is_array($data['content'])) {
+            $plainText = zed_extract_plain_text_from_blocks($data['content']);
         }
         
         $dataJson = json_encode($data, JSON_UNESCAPED_UNICODE);
@@ -714,6 +723,12 @@ function zed_api_toggle_addon(): bool
             "INSERT INTO zed_options (option_name, option_value, autoload) VALUES ('active_addons', :value, 1) ON DUPLICATE KEY UPDATE option_value = :value2",
             ['value' => json_encode($activeAddons), 'value2' => json_encode($activeAddons)]
         );
+        
+        // Invalidate addon cache (forces rebuild on next request)
+        $addonCacheFile = dirname(dirname(dirname(dirname(dirname(__DIR__))))) . '/content/addons/.addon_cache.php';
+        if (file_exists($addonCacheFile)) {
+            @unlink($addonCacheFile);
+        }
         
         echo json_encode([
             'success' => true, 

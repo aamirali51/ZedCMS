@@ -112,6 +112,20 @@ function zed_handle_content_routes(array $request, string $uri, string $themePat
         Router::setHandled($content);
         return true;
     }
+    
+    // /admin/content/edit - Content editor (with id parameter)
+    if ($uri === '/admin/content/edit') {
+        if (!Auth::check()) {
+            Router::redirect('/admin/login');
+            return true;
+        }
+        
+        ob_start();
+        require $themePath . '/editor.php';
+        $content = ob_get_clean();
+        Router::setHandled($content);
+        return true;
+    }
 
     // /admin/content/delete - Delete content by ID
     if ($uri === '/admin/content/delete') {

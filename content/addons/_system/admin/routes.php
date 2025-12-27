@@ -55,6 +55,9 @@ require_once $routesDir . '/comments.php';
 // Widgets management (v3.2.0)
 require_once $routesDir . '/widgets.php';
 
+// Cache management (v3.2.0)
+require_once $routesDir . '/cache.php';
+
 // API endpoints (save, upload, etc.)
 require_once $routesDir . '/api.php';
 
@@ -97,6 +100,7 @@ Event::on('route_request', function (array $request): void {
         'zed_handle_themes_routes',
         'zed_handle_comments_routes',
         'zed_handle_widgets_routes',
+        'zed_handle_cache_routes',
         // API routes
         'zed_handle_api_routes',
         'zed_handle_comment_api',

@@ -154,11 +154,61 @@ function render_blocks(array|string $blocks): string
                 break;
                 
             case 'video':
-                $url = htmlspecialchars($props['url'] ?? '');
+                $url = $props['url'] ?? '';
                 if ($url) {
-                    $html .= "<div class=\"video-wrapper\">\n";
-                    $html .= "  <video src=\"{$url}\" controls style=\"max-width: 100%;\"></video>\n";
-                    $html .= "</div>\n";
+                    // Check if it's a YouTube embed
+                    if (preg_match('/youtube\.com\/embed\/([a-zA-Z0-9_-]+)/', $url, $matches) 
+                        || preg_match('/youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/', $url, $matches)
+                        || preg_match('/youtu\.be\/([a-zA-Z0-9_-]+)/', $url, $matches)) {
+                        $videoId = $matches[1];
+                        $html .= "<div class=\"video-wrapper\" style=\"position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;\">\n";
+                        $html .= "  <iframe src=\"https://www.youtube.com/embed/{$videoId}\" frameborder=\"0\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen style=\"position: absolute; top: 0; left: 0; width: 100%; height: 100%;\"></iframe>\n";
+                        $html .= "</div>\n";
+                    }
+                    // Check if it's a Vimeo embed
+                    elseif (preg_match('/vimeo\.com\/(\d+)/', $url, $matches)) {
+                        $videoId = $matches[1];
+                        $html .= "<div class=\"video-wrapper\" style=\"position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;\">\n";
+                        $html .= "  <iframe src=\"https://player.vimeo.com/video/{$videoId}\" frameborder=\"0\" allow=\"autoplay; fullscreen; picture-in-picture\" allowfullscreen style=\"position: absolute; top: 0; left: 0; width: 100%; height: 100%;\"></iframe>\n";
+                        $html .= "</div>\n";
+                    }
+                    // Self-hosted video file
+                    else {
+                        $safeUrl = htmlspecialchars($url);
+                        $html .= "<div class=\"video-wrapper\">\n";
+                        $html .= "  <video src=\"{$safeUrl}\" controls style=\"max-width: 100%;\"></video>\n";
+                        $html .= "</div>\n";
+                    }
+                }
+                break;
+                
+            case 'youtube':
+            case 'embed':
+                $url = $props['url'] ?? $props['src'] ?? '';
+                if ($url) {
+                    // Extract YouTube video ID
+                    if (preg_match('/youtube\.com\/embed\/([a-zA-Z0-9_-]+)/', $url, $matches) 
+                        || preg_match('/youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/', $url, $matches)
+                        || preg_match('/youtu\.be\/([a-zA-Z0-9_-]+)/', $url, $matches)) {
+                        $videoId = $matches[1];
+                        $html .= "<div class=\"video-wrapper\" style=\"position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;\">\n";
+                        $html .= "  <iframe src=\"https://www.youtube.com/embed/{$videoId}\" frameborder=\"0\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen style=\"position: absolute; top: 0; left: 0; width: 100%; height: 100%;\"></iframe>\n";
+                        $html .= "</div>\n";
+                    }
+                    // Extract Vimeo video ID
+                    elseif (preg_match('/vimeo\.com\/(\d+)/', $url, $matches)) {
+                        $videoId = $matches[1];
+                        $html .= "<div class=\"video-wrapper\" style=\"position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;\">\n";
+                        $html .= "  <iframe src=\"https://player.vimeo.com/video/{$videoId}\" frameborder=\"0\" allow=\"autoplay; fullscreen; picture-in-picture\" allowfullscreen style=\"position: absolute; top: 0; left: 0; width: 100%; height: 100%;\"></iframe>\n";
+                        $html .= "</div>\n";
+                    }
+                    // Generic iframe embed
+                    else {
+                        $safeUrl = htmlspecialchars($url);
+                        $html .= "<div class=\"video-wrapper\" style=\"position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;\">\n";
+                        $html .= "  <iframe src=\"{$safeUrl}\" frameborder=\"0\" allowfullscreen style=\"position: absolute; top: 0; left: 0; width: 100%; height: 100%;\"></iframe>\n";
+                        $html .= "</div>\n";
+                    }
                 }
                 break;
                 

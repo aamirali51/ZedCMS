@@ -157,7 +157,7 @@ if (!function_exists('buildContentUrl')) {
                                 <?= strtoupper(substr($post['title'] ?: 'U', 0, 1)) ?>
                             </div>
                             <div>
-                                <a href="<?= $base_url ?>/admin/content/edit?id=<?= $post['id'] ?>" 
+                                <a href="<?= $base_url ?>/admin/editor?id=<?= $post['id'] ?>" 
                                    class="font-medium text-gray-900 hover:text-indigo-600">
                                     <?= htmlspecialchars($post['title'] ?: 'Untitled') ?>
                                 </a>
@@ -181,7 +181,7 @@ if (!function_exists('buildContentUrl')) {
                     </td>
                     <td class="px-6 py-4 text-right">
                         <div class="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <a href="<?= $base_url ?>/admin/content/edit?id=<?= $post['id'] ?>" 
+                            <a href="<?= $base_url ?>/admin/editor?id=<?= $post['id'] ?>" 
                                class="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
                                title="Edit">
                                 <span class="material-symbols-outlined text-[18px]">edit</span>
@@ -247,7 +247,7 @@ if (!function_exists('buildContentUrl')) {
                 Get started by creating your first piece of content
             <?php endif; ?>
         </p>
-        <a href="<?= $base_url ?>/admin/content/edit?new=true<?= !empty($type) ? '&type=' . htmlspecialchars($type) : '' ?>" 
+        <a href="<?= $base_url ?>/admin/editor?new=true<?= !empty($type) ? '&type=' . htmlspecialchars($type) : '' ?>" 
            class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors">
             <span class="material-symbols-outlined text-[18px]">add</span>
             Create Content

@@ -192,9 +192,45 @@ if (is_dir($addonsDir)) {
     }
     
     // ─────────────────────────────────────────────────────────────────────
+    // ADDON FILE CACHING (Performance optimization for 100+ addons)
+    // ─────────────────────────────────────────────────────────────────────
+    // Cache the file list to avoid expensive glob() on every request.
+    // Cache is stored in a simple file and auto-invalidates when addons
+    // are toggled (see addon toggle API).
+    
+    $addonCacheFile = $addonsDir . '/.addon_cache.php';
+    $addonFiles = null;
+    
+    // Try to load from cache (production mode)
+    if (!($config['app']['debug'] ?? false) && file_exists($addonCacheFile)) {
+        $addonFiles = @include $addonCacheFile;
+        // Validate cache structure
+        if (!is_array($addonFiles) || !isset($addonFiles['single']) || !isset($addonFiles['folder'])) {
+            $addonFiles = null;
+        }
+    }
+    
+    // Build cache if needed (cache miss or debug mode)
+    if ($addonFiles === null) {
+        $addonFiles = [
+            'single' => glob($addonsDir . '/*.php') ?: [],
+            'folder' => glob($addonsDir . '/*/addon.php') ?: [],
+            'generated' => time(),
+        ];
+        
+        // Save cache file (only in production mode)
+        if (!($config['app']['debug'] ?? false)) {
+            $cacheContent = "<?php\n// Auto-generated addon cache - delete to rebuild\nreturn " . var_export($addonFiles, true) . ";\n";
+            @file_put_contents($addonCacheFile, $cacheContent, LOCK_EX);
+        }
+    }
+    
+    // ─────────────────────────────────────────────────────────────────────
     // Load single-file addons: addons/*.php (excluding _system directory)
     // ─────────────────────────────────────────────────────────────────────
-    foreach (glob($addonsDir . '/*.php') as $addonFile) {
+    foreach ($addonFiles['single'] as $addonFile) {
+        if (!file_exists($addonFile)) continue; // Cache might be stale
+        
         $addonBasename = basename($addonFile);
         
         // Skip legacy system addons (if they still exist during migration)
@@ -218,7 +254,9 @@ if (is_dir($addonsDir)) {
     // ─────────────────────────────────────────────────────────────────────
     // Load folder-based addons: addons/*/addon.php
     // ─────────────────────────────────────────────────────────────────────
-    foreach (glob($addonsDir . '/*/addon.php') as $addonFile) {
+    foreach ($addonFiles['folder'] as $addonFile) {
+        if (!file_exists($addonFile)) continue; // Cache might be stale
+        
         $folderName = basename(dirname($addonFile));
         
         // Skip _system folder and legacy folders

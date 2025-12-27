@@ -486,6 +486,15 @@ function zed_get_sidebar_menu(): array
             'capability' => 'manage_settings',
             'is_system' => true,
         ],
+        [
+            'id' => 'cache',
+            'title' => 'Cache',
+            'icon' => 'cached',
+            'url' => $baseUrl . '/admin/cache',
+            'position' => 91,
+            'capability' => 'manage_settings',
+            'is_system' => true,
+        ],
     ];
     
     // Add registered addon menus

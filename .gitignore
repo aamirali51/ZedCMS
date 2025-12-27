@@ -2,6 +2,7 @@
 config.php
 
 migrate_options.php
+_reference
 
 # --- User Content ---
 # Ignore all uploads but keep the directory

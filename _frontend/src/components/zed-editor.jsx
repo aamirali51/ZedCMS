@@ -1,13 +1,10 @@
 /**
  * Zed CMS Editor - BlockNote Implementation
  * 
- * A Notion-style block editor with:
- * - Slash menu for block insertion
- * - Drag handles for block reordering
- * - Formatting toolbar
- * - Table support
- * - Image uploads
- * - Dark mode via Mantine
+ * Save/Load Flow:
+ * - SAVE: BlockNote JSON blocks → stored in database
+ * - EDIT: BlockNote JSON blocks → loaded directly into editor
+ * - DISPLAY: BlockNote JSON blocks → converted to HTML by PHP renderer
  */
 
 import { useCreateBlockNote } from "@blocknote/react"
@@ -16,15 +13,12 @@ import "@blocknote/mantine/style.css"
 
 /**
  * Image upload handler
- * Replace this with your actual upload logic
  */
 async function uploadFile(file) {
-    // Create FormData for upload
     const formData = new FormData()
     formData.append('file', file)
 
     try {
-        // Try to upload to Zed CMS media endpoint
         const response = await fetch('/ZedCMS/admin/api?action=upload_media', {
             method: 'POST',
             body: formData
@@ -38,7 +32,7 @@ async function uploadFile(file) {
         console.warn('Upload failed, using data URL fallback:', error)
     }
 
-    // Fallback: convert to data URL for preview
+    // Fallback: convert to data URL
     return new Promise((resolve) => {
         const reader = new FileReader()
         reader.onload = () => resolve(reader.result)
@@ -50,56 +44,37 @@ async function uploadFile(file) {
  * ZedEditor Component
  * 
  * @param {Object} props
- * @param {string} props.initialContent - HTML content to load
- * @param {Function} props.onChange - Called when content changes (receives HTML string)
+ * @param {Array} props.initialBlocks - BlockNote JSON blocks array to load
+ * @param {Function} props.onChange - Called when content changes (receives blocks array)
  */
-export const ZedEditor = ({ initialContent, onChange }) => {
-    // Create BlockNote editor instance
+export const ZedEditor = ({ initialBlocks, onChange }) => {
+    // Create BlockNote editor with initial content
     const editor = useCreateBlockNote({
         uploadFile,
-        // Default block types enabled
         defaultStyles: true,
+        // Load initial blocks directly if provided
+        initialContent: initialBlocks || undefined,
     })
 
-    // Handle content changes - convert blocks to HTML
-    const handleChange = async () => {
+    // Handle content changes - save blocks as JSON (NOT HTML)
+    const handleChange = () => {
         if (editor) {
-            try {
-                // Get HTML from blocks
-                const html = await editor.blocksToHTMLLossy(editor.document)
+            // Get the blocks as JSON array
+            const blocks = editor.document;
 
-                // Store in global for save handler
-                window.zed_editor_content = html
+            // Store in global for save handler
+            window.zed_editor_content = blocks;
 
-                // Call onChange prop if provided
-                if (onChange) {
-                    onChange(html)
-                }
-            } catch (error) {
-                console.error('Error converting blocks to HTML:', error)
+            if (onChange) {
+                onChange(blocks);
             }
         }
     }
 
-    // Load initial content when editor is ready
-    const handleEditorReady = async (editorInstance) => {
-        if (initialContent && typeof initialContent === 'string' && initialContent.trim()) {
-            try {
-                // Parse HTML to blocks
-                const blocks = await editorInstance.tryParseHTMLToBlocks(initialContent)
-                if (blocks && blocks.length > 0) {
-                    editorInstance.replaceBlocks(editorInstance.document, blocks)
-                }
-            } catch (error) {
-                console.warn('Could not parse initial HTML content:', error)
-            }
-        }
-    }
-
-    // Initialize content on first render
-    if (editor && initialContent && !editor._contentLoaded) {
-        editor._contentLoaded = true
-        handleEditorReady(editor)
+    // Also set initial content on first render
+    if (editor && !editor._initialized) {
+        editor._initialized = true;
+        window.zed_editor_content = editor.document;
     }
 
     if (!editor) {
@@ -112,7 +87,6 @@ export const ZedEditor = ({ initialContent, onChange }) => {
                 editor={editor}
                 onChange={handleChange}
                 theme="light"
-                data-theming-css-variables-demo
             />
         </div>
     )
