@@ -923,6 +923,11 @@ function zed_get_admin_menu_items(): array
     // Allow addons to register menu items (legacy hook method)
     $items = \Core\Event::filter('zed_admin_menu', $items);
     
+    // Ensure $items is an array (filter might return null from bad hooks)
+    if (!is_array($items)) {
+        $items = [];
+    }
+    
     // Sort by position
     usort($items, fn($a, $b) => ($a['position'] ?? 100) <=> ($b['position'] ?? 100));
     

@@ -27,6 +27,9 @@ if (!file_exists(__DIR__ . '/config.php')) {
 
 $config = require __DIR__ . '/config.php';
 
+// Define version constant (used by addons for direct access prevention)
+define('ZED_VERSION', '3.2.0');
+
 // 2. Autoload classes in /core (PSR-4 style autoloader for Core namespace)
 spl_autoload_register(function (string $class): void {
     // Core\App -> core/App.php

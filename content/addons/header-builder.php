@@ -218,26 +218,30 @@ function zed_get_header_element_settings(): array {
 /**
  * Register admin menu
  */
-Event::on('zed_admin_menu', function(&$menu) {
-    $menu['header-builder'] = [
+Event::on('zed_admin_menu', function($menu) {
+    $menu[] = [
+        'id' => 'header-builder',
         'label' => 'Header Builder',
         'icon' => 'view_quilt',
-        'url' => '/admin/header-builder',
-        'parent' => 'appearance',
+        'url' => \Core\Router::getBasePath() . '/admin/header-builder',
+        'position' => 87,
         'capability' => 'manage_settings',
     ];
+    return $menu;
 });
 
 /**
  * Register admin route
  */
-Event::on('zed_admin_routes', function($uri, $request, $themePath) {
-    if ($uri === '/admin/header-builder') {
+zed_register_route([
+    'path' => '/admin/header-builder',
+    'method' => 'GET',
+    'capability' => 'manage_settings',
+    'callback' => function($request, $uri, $params) {
         require ZED_HEADER_BUILDER_PATH . 'admin.php';
-        return true;
-    }
-    return false;
-});
+    },
+    'wrap_layout' => false, // admin.php has its own layout
+]);
 
 /**
  * Register API endpoints
