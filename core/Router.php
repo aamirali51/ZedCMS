@@ -55,8 +55,7 @@ final class Router
         // This is the ONLY logic in the router. Pure event-driven design.
         Event::trigger('route_request', $request);
 
-        // Check if any addon handled the request
-        /** @phpstan-ignore-next-line Event callbacks modify self::$handled */
+        // Check if any addon handled the request (set by event callbacks)
         if (self::$handled) {
             return self::$response;
         }
@@ -65,7 +64,6 @@ final class Router
         Event::trigger('route_not_found', $request);
         
         // If still not handled after 404 event, return default 404
-        /** @phpstan-ignore-next-line Event callbacks modify self::$handled */
         if (self::$handled) {
             return self::$response;
         }

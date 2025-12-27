@@ -10,3 +10,6 @@ parameters:
         - _frontend (?)
         - _reference (?)
     reportUnmatchedIgnoredErrors: false
+    ignoreErrors:
+        # Event callbacks modify static state, PHPStan can't track this
+        - '#If condition is always false#'
