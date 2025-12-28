@@ -1,0 +1,8 @@
+### Was this page helpful?
+
+[Hocuspocus](https://tiptap.dev/docs/hocuspocus/getting-started/overview)
+[Legal notice](https://tiptap.dev/legal-notice)
+[Privacy Policy](https://tiptap.dev/privacy-policy)
+[Terms of Service](https://tiptap.dev/terms-of-service)
+[Contributing](https://tiptap.dev/docs/resources/contributing)
+[Changelog](https://tiptap.dev/docs/resources/changelog)
