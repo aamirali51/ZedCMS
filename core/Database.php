@@ -71,6 +71,7 @@ final class Database
                 PDO::ATTR_EMULATE_PREPARES   => false,
                 // Use persistent connections for performance
                 PDO::ATTR_PERSISTENT         => true,
+                PDO::ATTR_STRINGIFY_FETCHES  => false
             ]);
         } catch (PDOException $e) {
             throw new PDOException(
@@ -221,7 +222,13 @@ final class Database
     {
         $data = $this->prepareJsonData($data);
 
-        $columns = implode(', ', array_keys($data));
+        $table = $this->escapeIdentifier($table);
+        $columns = implode(', ',
+         array_map(
+            fn (string $column): string => $this->escapeIdentifier($column), 
+            array_keys($data))
+        );
+        
         $placeholders = implode(', ', array_map(fn($k) => ":{$k}", array_keys($data)));
 
         $sql = "INSERT INTO {$table} ({$columns}) VALUES ({$placeholders})";
@@ -244,8 +251,12 @@ final class Database
     {
         $data = $this->prepareJsonData($data);
 
+        $table = $this->escapeIdentifier($table);
+
         $setParts = [];
         foreach ($data as $column => $value) {
+            $column = $this->escapeIdentifier($column);
+
             $setParts[] = "{$column} = :set_{$column}";
         }
         $setClause = implode(', ', $setParts);
@@ -272,6 +283,8 @@ final class Database
      */
     public function delete(string $table, string $where, array $params = []): int
     {
+        $table = $this->escapeIdentifier($table);
+
         $sql = "DELETE FROM {$table} WHERE {$where}";
         return (int) $this->query($sql, $params);
     }
@@ -309,6 +322,9 @@ final class Database
      */
     public function jsonGet(string $table, string $column, string $where, array $params = []): ?array
     {
+        $table = $this->escapeIdentifier($table);
+        $column = $this->escapeIdentifier($column);
+        
         $sql = "SELECT {$column} FROM {$table} WHERE {$where} LIMIT 1";
         $result = $this->queryValue($sql, $params);
 
@@ -334,6 +350,9 @@ final class Database
      */
     public function jsonMerge(string $table, string $column, array $data, string $where, array $whereParams = []): int
     {
+        $table = $this->escapeIdentifier($table);
+        $column = $this->escapeIdentifier($column);
+
         $jsonData = json_encode($data, JSON_THROW_ON_ERROR);
 
         $sql = "UPDATE {$table} SET {$column} = JSON_MERGE_PATCH(COALESCE({$column}, '{}'), :json_data) WHERE {$where}";
@@ -454,6 +473,22 @@ final class Database
         $sql = "SHOW TABLES LIKE :table";
         $result = $this->queryValue($sql, ['table' => $table]);
         return $result !== false && $result !== null;
+    }
+    
+    protected function escapeIdentifier(string $identifier): string
+    {
+        return strtr($identifier, [
+            '\\' => '\\\\',
+            "\n" => '\\n',
+            "\r" => '\\r',
+            "\t" => '\\t',
+            "\0" => '\\0',
+            "\b" => '\\b',
+            "\x1A" => '\\Z',
+            "'" => "\\'",
+            '"' => '\\"',
+            '`' => '\\`',
+        ]);
     }
 
     /**
