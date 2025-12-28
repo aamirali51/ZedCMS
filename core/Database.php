@@ -477,7 +477,7 @@ final class Database
     
     protected function escapeIdentifier(string $identifier): string
     {
-        return strtr($identifier, [
+        $escapedIdentifier = strtr($identifier, [
             '\\' => '\\\\',
             "\n" => '\\n',
             "\r" => '\\r',
@@ -489,6 +489,8 @@ final class Database
             '"' => '\\"',
             '`' => '\\`',
         ]);
+
+        return "`{$escapedIdentifier}`";
     }
 
     /**
