@@ -14,9 +14,9 @@ use Core\Router;
 $base_url = Router::getBasePath();
 
 // Get settings
-$showFeatured = aurora_option('show_featured', true);
-$showCategories = aurora_option('show_categories', true);
-$showNewsletter = aurora_option('show_newsletter', true);
+$showFeatured = aurora_bool_option('show_featured', true);
+$showCategories = aurora_bool_option('show_categories', true);
+$showNewsletter = aurora_bool_option('show_newsletter', true);
 
 // Split posts for different sections
 $featuredPost = $posts[0] ?? null;

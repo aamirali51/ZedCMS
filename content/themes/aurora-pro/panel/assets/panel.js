@@ -16,10 +16,33 @@ document.addEventListener('DOMContentLoaded', function () {
 function initTabs() {
     const tabs = document.querySelectorAll('.panel-tab');
     const sections = document.querySelectorAll('.panel-section');
+    const activeTabInput = document.getElementById('aurora_active_tab');
+
+    // Restore active tab from hidden field (after form submit)
+    const savedTab = activeTabInput ? activeTabInput.value : 'general';
+
+    // Activate saved tab on load
+    if (savedTab && savedTab !== 'general') {
+        const targetTab = document.querySelector(`.panel-tab[data-section="${savedTab}"]`);
+        const targetSection = document.querySelector(`.panel-section[data-section="${savedTab}"]`);
+
+        if (targetTab && targetSection) {
+            tabs.forEach(t => t.classList.remove('active'));
+            sections.forEach(s => s.classList.add('hidden'));
+
+            targetTab.classList.add('active');
+            targetSection.classList.remove('hidden');
+        }
+    }
 
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
             const targetSection = tab.dataset.section;
+
+            // Save active tab to hidden field
+            if (activeTabInput) {
+                activeTabInput.value = targetSection;
+            }
 
             // Update tabs
             tabs.forEach(t => t.classList.remove('active'));

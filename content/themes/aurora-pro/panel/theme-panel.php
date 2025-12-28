@@ -166,6 +166,7 @@ $sections = [
         <main class="flex-1 overflow-y-auto p-8">
             <form id="settings-form" method="post">
                 <input type="hidden" name="aurora_save" value="1">
+                <input type="hidden" name="aurora_active_tab" id="aurora_active_tab" value="<?= htmlspecialchars($_POST['aurora_active_tab'] ?? 'general') ?>">
                 
                 <!-- General Section -->
                 <section class="panel-section" data-section="general">
@@ -770,6 +771,7 @@ function aurora_get_all_settings(): array {
 
 /**
  * Save Aurora settings
+ * Uses direct DB writes to avoid per-option cache clears, then clears once at end
  */
 function aurora_save_settings(array $data): bool {
     $keys = [
@@ -787,12 +789,41 @@ function aurora_save_settings(array $data): bool {
         'custom_css', 'header_scripts', 'footer_scripts',
     ];
     
-    foreach ($keys as $key) {
-        $value = $data[$key] ?? '';
-        zed_set_option('aurora_' . $key, $value);
+    try {
+        $db = \Core\Database::getInstance();
+        
+        foreach ($keys as $key) {
+            $optionName = 'aurora_' . $key;
+            $value = (string) ($data[$key] ?? '');
+            
+            // Check if exists
+            $existing = $db->queryOne(
+                "SELECT id FROM zed_options WHERE option_name = :name",
+                ['name' => $optionName]
+            );
+            
+            if ($existing) {
+                $db->query(
+                    "UPDATE zed_options SET option_value = :value WHERE option_name = :name",
+                    ['value' => $value, 'name' => $optionName]
+                );
+            } else {
+                $db->query(
+                    "INSERT INTO zed_options (option_name, option_value, autoload) VALUES (:name, :value, 1)",
+                    ['name' => $optionName, 'value' => $value]
+                );
+            }
+        }
+        
+        // Clear cache ONCE after all writes complete
+        if (function_exists('zed_get_option')) {
+            zed_get_option('__CLEAR_CACHE__');
+        }
+        
+        return true;
+    } catch (\Exception $e) {
+        return false;
     }
-    
-    return true;
 }
 
 /**
@@ -835,7 +866,35 @@ function aurora_reset_settings(): void {
         'footer_tagline' => 'Built with ZedCMS',
     ];
     
-    foreach ($defaults as $key => $value) {
-        zed_set_option('aurora_' . $key, $value);
+    try {
+        $db = \Core\Database::getInstance();
+        
+        foreach ($defaults as $key => $value) {
+            $optionName = 'aurora_' . $key;
+            
+            $existing = $db->queryOne(
+                "SELECT id FROM zed_options WHERE option_name = :name",
+                ['name' => $optionName]
+            );
+            
+            if ($existing) {
+                $db->query(
+                    "UPDATE zed_options SET option_value = :value WHERE option_name = :name",
+                    ['value' => $value, 'name' => $optionName]
+                );
+            } else {
+                $db->query(
+                    "INSERT INTO zed_options (option_name, option_value, autoload) VALUES (:name, :value, 1)",
+                    ['name' => $optionName, 'value' => $value]
+                );
+            }
+        }
+        
+        // Clear cache once after all writes
+        if (function_exists('zed_get_option')) {
+            zed_get_option('__CLEAR_CACHE__');
+        }
+    } catch (\Exception $e) {
+        // Silent fail
     }
 }

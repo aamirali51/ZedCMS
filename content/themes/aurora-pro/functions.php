@@ -193,6 +193,28 @@ function aurora_option(string $key, mixed $default = ''): mixed
 }
 
 /**
+ * Get a boolean Aurora Pro option (for toggle/checkbox settings)
+ * Returns true if value is '1', 'true', true, or 1
+ * Returns $default if option not set or empty
+ * 
+ * @param string $key Option key (without prefix)
+ * @param bool $default Default value if not set
+ * @return bool
+ */
+function aurora_bool_option(string $key, bool $default = false): bool
+{
+    $value = zed_get_option('aurora_' . $key, null);
+    
+    // If not set at all, return default
+    if ($value === null || $value === '') {
+        return $default;
+    }
+    
+    // Check truthy values
+    return in_array($value, ['1', 'true', true, 1], true);
+}
+
+/**
  * Get the active layout for the theme
  */
 function aurora_get_layout(): string
@@ -383,7 +405,7 @@ Event::on('zed_after_content', function(array $post, array $data): void {
         return;
     }
     
-    if (aurora_option('show_author_bio', true) !== '1' && aurora_option('show_author_bio', true) !== true) {
+    if (!aurora_bool_option('show_author_bio', true)) {
         return;
     }
     
@@ -398,7 +420,7 @@ Event::on('zed_after_content', function(array $post, array $data): void {
         return;
     }
     
-    if (aurora_option('show_share_buttons', true) !== '1' && aurora_option('show_share_buttons', true) !== true) {
+    if (!aurora_bool_option('show_share_buttons', true)) {
         return;
     }
     
@@ -413,7 +435,7 @@ Event::on('zed_after_content', function(array $post, array $data): void {
         return;
     }
     
-    if (aurora_option('show_related_posts', true) !== '1' && aurora_option('show_related_posts', true) !== true) {
+    if (!aurora_bool_option('show_related_posts', true)) {
         return;
     }
     
@@ -424,7 +446,7 @@ Event::on('zed_after_content', function(array $post, array $data): void {
  * Inject dark mode script
  */
 Event::on('zed_footer', function(): void {
-    if (aurora_option('dark_mode', true) !== '1' && aurora_option('dark_mode', true) !== true) {
+    if (!aurora_bool_option('dark_mode', true)) {
         return;
     }
     

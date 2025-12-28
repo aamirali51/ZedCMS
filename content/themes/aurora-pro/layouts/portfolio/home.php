@@ -25,7 +25,7 @@ if (empty($projects)) {
 }
 
 // Get settings
-$showHero = aurora_option('show_hero', true);
+$showHero = aurora_bool_option('show_hero', true);
 $heroTitle = aurora_option('hero_title', 'My Portfolio');
 $heroSubtitle = aurora_option('hero_subtitle', 'A collection of my creative work');
 

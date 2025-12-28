@@ -14,10 +14,10 @@ use Core\Router;
 $base_url = Router::getBasePath();
 
 // Get theme settings
-$showHero = aurora_option('show_hero', true);
-$showFeatured = aurora_option('show_featured', true);
-$showNewsletter = aurora_option('show_newsletter', true);
-$showSidebar = aurora_option('show_sidebar', true);
+$showHero = aurora_bool_option('show_hero', true);
+$showFeatured = aurora_bool_option('show_featured', true);
+$showNewsletter = aurora_bool_option('show_newsletter', true);
+$showSidebar = aurora_bool_option('show_sidebar', true);
 $heroTitle = aurora_option('hero_title', 'Welcome to Our Blog');
 $heroSubtitle = aurora_option('hero_subtitle', 'Discover stories, insights, and inspiration');
 $featuredCount = (int) aurora_option('featured_count', 3);
